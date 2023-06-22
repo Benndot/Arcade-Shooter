@@ -1,5 +1,6 @@
 import pygame
 import sys
+import copy
 import random
 from game_utils import Font, create_title_text, create_text_button
 
@@ -53,7 +54,7 @@ class Entity:
 
 class Enemy(Entity):
 
-    def __init__(self, name: str, form: Image, x: float or int, y: float or int, health: int):
+    def __init__(self, name: str, form: Image, health: int, x=None, y=None):
         super().__init__(form, x, y)
         self.name = name
         self.health = health
@@ -63,8 +64,8 @@ class Enemy(Entity):
         return f"{self.name}, x: {self.x}, y: {self.y}"
 
 
-lesser_hippy = Enemy("Lesser Hippy", Images.lesser_hippy, 0, 0, 1)
-greater_hippy = Enemy("Greater Hippy", Images.greater_hippy, 0, 0, 1)
+lesser_hippy = Enemy("Lesser Hippy", Images.lesser_hippy, 1)
+greater_hippy = Enemy("Greater Hippy", Images.greater_hippy, 2)
 
 
 class Player(Entity):
@@ -103,18 +104,35 @@ class Stage:
     def generate_enemy_positions(self):
         for entry in self.enemy_details:
             for _ in range(entry["count"]):
-                enemy = entry["enemy"]
-                enemy.x = entry["position"][0]
-                enemy.y = entry["position"][1]
+                enemy = copy.copy(entry["enemy"])
+                print("hello")
+                if len(entry["x"]) == 2:
+                    position = random.randint(entry["x"][0], entry["x"][1])
+                    print(f"X: {position}")
+                    enemy.x = position
+                else:
+                    enemy.x = entry["x"][0]
+
+                if len(entry["y"]) == 2:
+                    position = random.randint(entry["y"][0], entry["y"][1])
+                    print(f"Y: {position}")
+                    enemy.y = position
+                else:
+                    enemy.y = entry["y"][0]
+
                 self.enemy_list.append(enemy)
 
 
 stage_one = Stage(Images.backdrop,
                   (
-                      {"enemy": lesser_hippy, "count": 5, "position": (Display.width / 2,
-                                                                       random.randint(0, int(Display.height / 2.25)))},
-                      {"enemy": greater_hippy, "count": 2, "position": (Display.width / 2,
-                                                                        random.randint(0, int(Display.height / 2.25)))}
+                      {"enemy": lesser_hippy, "count": 5, "x": [(Display.width - Images.backdrop.width) / 2,
+                                                                (Display.width - Images.backdrop.width) / 2 +
+                                                                Images.backdrop.width - lesser_hippy.form.width],
+                       "y": [0, Display.height / 2.25]},
+                      {"enemy": greater_hippy, "count": 2, "x": [(Display.width - Images.backdrop.width) / 2,
+                                                                 (Display.width - Images.backdrop.width) / 2 +
+                                                                 Images.backdrop.width - greater_hippy.form.width],
+                       "y": [0, Display.height / 2.25]}
                   )
                   )
 
@@ -160,9 +178,7 @@ def game():
 
     Display.screen.fill((0, 0, 0))
 
-    player_image = Image("images/dad.png", Display.game_zone / 11, Display.game_zone / 11)
-    player = Player(Image("images/dad.png", Display.game_zone / 11, Display.game_zone / 11), Display.width / 2,
-                    Display.height - player_image.height, 3)
+    player = Player(Images.player_image, Display.width / 2, Display.height - Images.player_image.height, 3)
 
     while True:
 
@@ -191,6 +207,9 @@ def game():
         player.move()
 
         player.move_projectiles()
+
+        for enemy in stage_one.enemy_list:
+            enemy.display()
 
         pygame.display.update()
         clock.tick(Game.fps)
