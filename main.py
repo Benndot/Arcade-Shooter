@@ -25,6 +25,7 @@ class Image:
         self.height = height
         self.raw_image = pygame.image.load(image_path)
         self.image = pygame.transform.scale(self.raw_image, (width, height))
+        self.rect = self.image.get_rect()
 
     def display_self(self, x, y):
         Display.screen.blit(self.image, (x, y))
@@ -61,12 +62,6 @@ class Enemy(Entity):
         self.speed = speed
         self.descent = descent
         self.has_projectiles = False
-
-    def move(self, arena):
-        self.x += self.speed
-        if self.x <= arena.left_boundary or self.x >= arena.get_entity_right_boundary(self):
-            self.y += self.descent
-            self.speed = -self.speed
 
     def __str__(self):
         return f"{self.name}, x: {self.x}, y: {self.y}"
@@ -130,14 +125,12 @@ class Stage(Arena):
                 enemy = copy.copy(entry["enemy"])
                 if len(entry["x"]) == 2:
                     position = random.randint(int(entry["x"][0]), int(entry["x"][1]))
-                    print(f"X: {position}")
                     enemy.x = position
                 else:
                     enemy.x = entry["x"][0]
 
                 if len(entry["y"]) == 2:
                     position = random.randint(entry["y"][0], entry["y"][1])
-                    print(f"Y: {position}")
                     enemy.y = position
                 else:
                     enemy.y = entry["y"][0]
@@ -145,6 +138,14 @@ class Stage(Arena):
                 enemy.speed = random.choice([enemy.speed, -enemy.speed])
 
                 self.enemy_list.append(enemy)
+
+    def move_enemies(self):
+        for enemy in self.enemy_list:
+            enemy.x += enemy.speed
+            if enemy.x <= self.left_boundary or enemy.x >= self.get_entity_right_boundary(enemy):
+                enemy.y += enemy.descent
+                enemy.speed = -enemy.speed
+            enemy.display()
 
 
 stage_one = Stage(Images.backdrop,
@@ -195,12 +196,18 @@ def game():
     background: Image = Game.current_stage.background
 
     stage_one.generate_enemy_positions()
-    for enemy in stage_one.enemy_list:
-        print(enemy.__str__())
+    # for enemy in stage_one.enemy_list:
+    #     print(enemy.__str__())
 
     Display.screen.fill((0, 0, 0))
 
     player = Player(Images.player_image, Display.width / 2, Display.height - Images.player_image.height, 3)
+
+    # rect_examples = [Images.player_image.image.get_rect(), stage_one.enemy_list[2].form.image.get_rect(),
+    #                  player.projectile_image.image.get_rect()]
+    #
+    # for rect in rect_examples:
+    #     print(rect)
 
     while True:
 
@@ -226,13 +233,14 @@ def game():
                 if evnt.key == pygame.K_ESCAPE:
                     main()
 
+        Game.current_stage.move_enemies()
+
         player.move()
-
         player.move_projectiles()
-
-        for enemy in stage_one.enemy_list:
-            enemy.move(Game.current_stage)
-            enemy.display()
+        # for projectile in player.projectiles:
+        #     for enemy in Game.current_stage.enemy_list:
+        #         if projectile.form.rect.colliderect(enemy.form.rect):
+        #             print("It's a hit!")
 
         pygame.display.update()
         clock.tick(Game.fps)
