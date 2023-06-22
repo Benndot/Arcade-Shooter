@@ -1,13 +1,15 @@
 # Benndot's Arcade Shooter 2.0
 
-## todo 
+An attempt at making a two-dimensional arcade-style shooting game. 
 
-find a way to break up position randomization when generating enemies for a stage
-
-implement renderihg enemies to the screen
+## todo
 
 implement collision and core gameplay mechanics
 
 implement victory and defeat scenarios
 
 implement music and sound effects
+
+introduce more stages and more enemy types
+
+create settings menu with sound options and screen resizing

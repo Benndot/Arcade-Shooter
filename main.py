@@ -54,18 +54,26 @@ class Entity:
 
 class Enemy(Entity):
 
-    def __init__(self, name: str, form: Image, health: int, x=None, y=None):
+    def __init__(self, name: str, form: Image, health: int, speed, descent, x=None, y=None):
         super().__init__(form, x, y)
         self.name = name
         self.health = health
-        self.speed = Display.height / 112
+        self.speed = speed
+        self.descent = descent
+        self.has_projectiles = False
+
+    def move(self, arena):
+        self.x += self.speed
+        if self.x <= arena.left_boundary or self.x >= arena.get_entity_right_boundary(self):
+            self.y += self.descent
+            self.speed = -self.speed
 
     def __str__(self):
         return f"{self.name}, x: {self.x}, y: {self.y}"
 
 
-lesser_hippy = Enemy("Lesser Hippy", Images.lesser_hippy, 1)
-greater_hippy = Enemy("Greater Hippy", Images.greater_hippy, 2)
+lesser_hippy = Enemy("Lesser Hippy", Images.lesser_hippy, 1, Display.height / 150, 15)
+greater_hippy = Enemy("Greater Hippy", Images.greater_hippy, 2, Display.height / 120, 5)
 
 
 class Player(Entity):
@@ -94,10 +102,25 @@ class Player(Entity):
             projectile.display()
 
 
-class Stage:
+class Arena:
 
-    def __init__(self, background, enemy_details):
+    def __init__(self, background: Image):
         self.background: Image = background
+        self.left_boundary = (Display.width - background.width) / 2
+        self.right_boundary = ((Display.width - background.width) / 2) + background.width
+
+    def get_entity_right_boundary(self, entity):
+        return self.right_boundary - entity.form.width
+
+
+class Arenas:
+    park = Arena(Images.backdrop)
+
+
+class Stage(Arena):
+
+    def __init__(self, background: Image, enemy_details):
+        super().__init__(background)
         self.enemy_details: tuple[dict] = enemy_details
         self.enemy_list: list = []
 
@@ -105,9 +128,8 @@ class Stage:
         for entry in self.enemy_details:
             for _ in range(entry["count"]):
                 enemy = copy.copy(entry["enemy"])
-                print("hello")
                 if len(entry["x"]) == 2:
-                    position = random.randint(entry["x"][0], entry["x"][1])
+                    position = random.randint(int(entry["x"][0]), int(entry["x"][1]))
                     print(f"X: {position}")
                     enemy.x = position
                 else:
@@ -120,18 +142,18 @@ class Stage:
                 else:
                     enemy.y = entry["y"][0]
 
+                enemy.speed = random.choice([enemy.speed, -enemy.speed])
+
                 self.enemy_list.append(enemy)
 
 
 stage_one = Stage(Images.backdrop,
                   (
-                      {"enemy": lesser_hippy, "count": 5, "x": [(Display.width - Images.backdrop.width) / 2,
-                                                                (Display.width - Images.backdrop.width) / 2 +
-                                                                Images.backdrop.width - lesser_hippy.form.width],
+                      {"enemy": lesser_hippy, "count": 5, "x": [Arenas.park.left_boundary,
+                                                                Arenas.park.get_entity_right_boundary(lesser_hippy)],
                        "y": [0, Display.height / 2.25]},
-                      {"enemy": greater_hippy, "count": 2, "x": [(Display.width - Images.backdrop.width) / 2,
-                                                                 (Display.width - Images.backdrop.width) / 2 +
-                                                                 Images.backdrop.width - greater_hippy.form.width],
+                      {"enemy": greater_hippy, "count": 2, "x": [Arenas.park.left_boundary,
+                                                                 Arenas.park.get_entity_right_boundary(lesser_hippy)],
                        "y": [0, Display.height / 2.25]}
                   )
                   )
@@ -209,6 +231,7 @@ def game():
         player.move_projectiles()
 
         for enemy in stage_one.enemy_list:
+            enemy.move(Game.current_stage)
             enemy.display()
 
         pygame.display.update()
