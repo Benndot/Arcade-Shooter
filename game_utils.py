@@ -182,8 +182,12 @@ def create_text_button(font_choice, msg: str, x: int or float, y: int or float,
         pygame.draw.rect(screen, hover_color, (x, y, button_width, button_height))
         for evnt in pygame.event.get():
             if evnt.type == pygame.MOUSEBUTTONUP:
-                if click_sound:
-                    print("No default click sound has been set")
+                try:
+                    if click_sound:
+                        click = mixer.Sound("audio/click3.wav")
+                        mixer.Sound.play(click)
+                except FileNotFoundError:
+                    print("There is no valid audio file for the clicking sound effect, at present")
                 return True
     else:
         pygame.draw.rect(screen, default_color, (x, y, button_width, button_height))

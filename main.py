@@ -36,10 +36,11 @@ class Image:
 
 
 class Images:
-    player_image = Image("images/dad.png", Display.game_zone / 11, Display.game_zone / 11)
+    player = Image("images/dad.png", Display.game_zone / 11, Display.game_zone / 11)
     backdrop = Image("images/backdrop_park.png", Display.width * 0.66, Display.height)
     lesser_hippy = Image("images/hippie_green.png", Display.game_zone / 11, Display.game_zone / 11)
     greater_hippy = Image("images/hippie_red.png", Display.game_zone / 11, Display.game_zone / 11)
+    projectile = Image("images/baseball.png", Display.game_zone / 20, Display.game_zone / 20)
 
 
 class Entity:
@@ -48,20 +49,32 @@ class Entity:
         self.form = form
         self.x = x
         self.y = y
+        self.rect = pygame.Rect(self.x, self.y, self.form.image.get_rect().width, self.form.image.get_rect().height)
 
     def display(self):
         Display.screen.blit(self.form.image, (self.x, self.y))
 
+    def update_rect(self):
+        self.rect = pygame.Rect(self.x, self.y, self.form.image.get_rect().width, self.form.image.get_rect().height)
+
+
+class Projectile(Entity):
+
+    def __init__(self, form, x, y, speed):
+        super().__init__(form, x, y)
+        self.speed = speed
+
 
 class Enemy(Entity):
 
-    def __init__(self, name: str, form: Image, health: int, speed, descent, x=None, y=None):
+    def __init__(self, name: str, form: Image, health: int, speed, descent, x=0, y=0):
         super().__init__(form, x, y)
         self.name = name
         self.health = health
         self.speed = speed
         self.descent = descent
         self.has_projectiles = False
+        self.invulnerable = False
 
     def __str__(self):
         return f"{self.name}, x: {self.x}, y: {self.y}"
@@ -77,7 +90,6 @@ class Player(Entity):
         super().__init__(form, x, y)
         self.health = health
         self.momentum = 0
-        self.projectile_image = Image("images/baseball.png", Display.game_zone / 20, Display.game_zone / 20)
         self.projectiles = []
 
     def move(self):
@@ -87,13 +99,15 @@ class Player(Entity):
                 self.x = (Display.width - Display.game_zone) / 2
             if self.x >= ((Display.width - Display.game_zone) / 2) + Display.game_zone - self.form.width:
                 self.x = ((Display.width - Display.game_zone) / 2) + Display.game_zone - self.form.width
+        self.update_rect()
         self.display()
 
     def move_projectiles(self):
         for projectile in self.projectiles:
-            projectile.y -= Display.height / 112
+            projectile.y -= projectile.speed
             if projectile.y < -50:
                 self.projectiles.remove(projectile)
+            projectile.update_rect()
             projectile.display()
 
 
@@ -145,6 +159,7 @@ class Stage(Arena):
             if enemy.x <= self.left_boundary or enemy.x >= self.get_entity_right_boundary(enemy):
                 enemy.y += enemy.descent
                 enemy.speed = -enemy.speed
+            enemy.update_rect()
             enemy.display()
 
 
@@ -176,16 +191,42 @@ def start_menu():
         create_title_text("Benndot's Arcade Shooter", color=(255, 255, 255), x=Display.width * 0.5,
                           screen=Display.screen)
 
-        play_button = create_text_button(Font.lg, "PLAY", Display.width * 0.5, Display.height * 0.5,
+        play_button = create_text_button(Font.xl, "PLAY", Display.width * 0.5, Display.height * 0.4,
                                          x_adjust=True, screen=Display.screen)
 
         if play_button:
             game()
 
+        settings_button = create_text_button(Font.lg, "SETTINGS", Display.width * 0.5, Display.height * 0.65,
+                                             x_adjust=True, screen=Display.screen)
+
+        if settings_button:
+            options(  ) 
+
         for evnt in pygame.event.get():
             if evnt.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+
+        pygame.display.update()
+        clock.tick(Game.fps)
+
+
+def options():
+
+    while True:
+        Display.screen.fill((255, 255, 255))
+
+        create_title_text("Settings", color=(0, 0, 0), x=Display.width * 0.5,
+                          screen=Display.screen)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_ESCAPE:
+                    main()
 
         pygame.display.update()
         clock.tick(Game.fps)
@@ -201,13 +242,7 @@ def game():
 
     Display.screen.fill((0, 0, 0))
 
-    player = Player(Images.player_image, Display.width / 2, Display.height - Images.player_image.height, 3)
-
-    # rect_examples = [Images.player_image.image.get_rect(), stage_one.enemy_list[2].form.image.get_rect(),
-    #                  player.projectile_image.image.get_rect()]
-    #
-    # for rect in rect_examples:
-    #     print(rect)
+    player = Player(Images.player, Display.width / 2, Display.height - Images.player.height, 3)
 
     while True:
 
@@ -223,8 +258,8 @@ def game():
                 if evnt.key == pygame.K_LEFT or evnt.key == pygame.K_a:
                     player.momentum = - Display.height / 112
                 if evnt.key == pygame.K_SPACE:
-                    projectile = Entity(player.projectile_image, player.x + (player.projectile_image.width / 2),
-                                        player.y - Display.height / 30)
+                    projectile = Projectile(Images.projectile, player.x + (Images.projectile.width / 2),
+                                            player.y - Display.height / 30, Display.height / 112)
                     player.projectiles.append(projectile)
             if evnt.type == pygame.KEYUP:
                 if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_LEFT or evnt.key == pygame.K_d or \
@@ -237,10 +272,18 @@ def game():
 
         player.move()
         player.move_projectiles()
-        # for projectile in player.projectiles:
-        #     for enemy in Game.current_stage.enemy_list:
-        #         if projectile.form.rect.colliderect(enemy.form.rect):
-        #             print("It's a hit!")
+
+        for projectile in player.projectiles:
+            for enemy in stage_one.enemy_list:
+                if not enemy.invulnerable and projectile.rect.colliderect(enemy):
+                    print("ITS A HIT")
+                    player.projectiles.remove(projectile)
+                    enemy.health -= 1
+                    if enemy.health <= 0:
+                        stage_one.enemy_list.remove(enemy)
+                    enemy.invulnerable = True
+                if enemy.invulnerable and not projectile.rect.colliderect(enemy):
+                    enemy.invulnerable = False
 
         pygame.display.update()
         clock.tick(Game.fps)
