@@ -40,7 +40,7 @@ class Images:
     backdrop = Image("images/backdrop_park.png", Display.width * 0.66, Display.height)
     lesser_hippy = Image("images/hippie_green.png", Display.game_zone / 11, Display.game_zone / 11)
     greater_hippy = Image("images/hippie_red.png", Display.game_zone / 11, Display.game_zone / 11)
-    projectile = Image("images/baseball.png", Display.game_zone / 20, Display.game_zone / 20)
+    projectile = Image("images/baseball.png", Display.game_zone / 25, Display.game_zone / 25)
 
 
 class Entity:
@@ -102,6 +102,11 @@ class Player(Entity):
         self.update_rect()
         self.display()
 
+    def launch_projectile(self):
+        projectile = Projectile(Images.projectile, self.x + (Images.projectile.width / 2),
+                                self.y - Display.height / 30, Display.height / 112)
+        self.projectiles.append(projectile)
+
     def move_projectiles(self):
         for projectile in self.projectiles:
             projectile.y -= projectile.speed
@@ -132,6 +137,7 @@ class Stage(Arena):
         super().__init__(background)
         self.enemy_details: tuple[dict] = enemy_details
         self.enemy_list: list = []
+        self.player = Player(Images.player, Display.width / 2, Display.height - Images.player.height, 3)
 
     def generate_enemy_positions(self):
         for entry in self.enemy_details:
@@ -162,6 +168,19 @@ class Stage(Arena):
             enemy.update_rect()
             enemy.display()
 
+    def detect_collision(self):
+        for projectile in self.player.projectiles:
+            for enemy in stage_one.enemy_list:
+                if not enemy.invulnerable and projectile.rect.colliderect(enemy):
+                    print("ITS A HIT")
+                    self.player.projectiles.remove(projectile)
+                    enemy.health -= 1
+                    if enemy.health <= 0:
+                        stage_one.enemy_list.remove(enemy)
+                    enemy.invulnerable = True
+                if enemy.invulnerable and not projectile.rect.colliderect(enemy):
+                    enemy.invulnerable = False
+
 
 stage_one = Stage(Images.backdrop,
                   (
@@ -169,7 +188,7 @@ stage_one = Stage(Images.backdrop,
                                                                 Arenas.park.get_entity_right_boundary(lesser_hippy)],
                        "y": [0, Display.height / 2.25]},
                       {"enemy": greater_hippy, "count": 2, "x": [Arenas.park.left_boundary,
-                                                                 Arenas.park.get_entity_right_boundary(lesser_hippy)],
+                                                                 Arenas.park.get_entity_right_boundary(greater_hippy)],
                        "y": [0, Display.height / 2.25]}
                   )
                   )
@@ -179,6 +198,11 @@ class Game:
     fps: int = 60
     current_stage: Stage = stage_one
 
+    @staticmethod
+    def quit(event):
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
 
 # GAME SCREENS --------------------------------------------------------------------------------------------------------
 
@@ -195,18 +219,16 @@ def start_menu():
                                          x_adjust=True, screen=Display.screen)
 
         if play_button:
-            game()
+            game(Game.current_stage)
 
         settings_button = create_text_button(Font.lg, "SETTINGS", Display.width * 0.5, Display.height * 0.65,
                                              x_adjust=True, screen=Display.screen)
 
         if settings_button:
-            options(  ) 
+            options()
 
         for evnt in pygame.event.get():
-            if evnt.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+            Game.quit(evnt)
 
         pygame.display.update()
         clock.tick(Game.fps)
@@ -221,9 +243,7 @@ def options():
                           screen=Display.screen)
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+            Game.quit(event)
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
                     main()
@@ -232,7 +252,7 @@ def options():
         clock.tick(Game.fps)
 
 
-def game():
+def game(stage: Stage):
 
     background: Image = Game.current_stage.background
 
@@ -242,48 +262,32 @@ def game():
 
     Display.screen.fill((0, 0, 0))
 
-    player = Player(Images.player, Display.width / 2, Display.height - Images.player.height, 3)
-
     while True:
 
         background.display_center()
 
         for evnt in pygame.event.get():
-            if evnt.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+            Game.quit(evnt)
             if evnt.type == pygame.KEYDOWN:
                 if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_d:
-                    player.momentum = Display.height / 112
+                    stage.player.momentum = Display.height / 112
                 if evnt.key == pygame.K_LEFT or evnt.key == pygame.K_a:
-                    player.momentum = - Display.height / 112
+                    stage.player.momentum = - Display.height / 112
                 if evnt.key == pygame.K_SPACE:
-                    projectile = Projectile(Images.projectile, player.x + (Images.projectile.width / 2),
-                                            player.y - Display.height / 30, Display.height / 112)
-                    player.projectiles.append(projectile)
+                    stage.player.launch_projectile()
             if evnt.type == pygame.KEYUP:
                 if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_LEFT or evnt.key == pygame.K_d or \
                         evnt.key == pygame.K_a:
-                    player.momentum = 0
+                    stage.player.momentum = 0
                 if evnt.key == pygame.K_ESCAPE:
                     main()
 
         Game.current_stage.move_enemies()
 
-        player.move()
-        player.move_projectiles()
+        stage.player.move()
+        stage.player.move_projectiles()
 
-        for projectile in player.projectiles:
-            for enemy in stage_one.enemy_list:
-                if not enemy.invulnerable and projectile.rect.colliderect(enemy):
-                    print("ITS A HIT")
-                    player.projectiles.remove(projectile)
-                    enemy.health -= 1
-                    if enemy.health <= 0:
-                        stage_one.enemy_list.remove(enemy)
-                    enemy.invulnerable = True
-                if enemy.invulnerable and not projectile.rect.colliderect(enemy):
-                    enemy.invulnerable = False
+        stage.detect_collision()
 
         pygame.display.update()
         clock.tick(Game.fps)
@@ -296,9 +300,7 @@ def main():
         start_menu()
 
         for evnt in pygame.event.get():
-            if evnt.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+            Game.quit(evnt)
 
         pygame.display.update()
         clock.tick(Game.fps)
