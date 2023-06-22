@@ -110,7 +110,7 @@ class Font:
 
 # Utility functions for text and buttons ----------------------------------------------------------------------------
 
-def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False):
+def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False, screen=Screen.screen):
 
     text = font_size.render(message, True, color)
 
@@ -118,14 +118,15 @@ def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False
         text_width = text.get_width()
         x = x - (text_width / 2)
 
-    Screen.screen.blit(text, (x, y))
+    screen.blit(text, (x, y))
 
 
-def create_title_text(message, font_size=Font.lg, color=(0, 0, 0), x=Screen.width / 2, y=Screen.height * 0.1):
+def create_title_text(message, font_size=Font.lg, color=(0, 0, 0), x=Screen.width / 2, y=Screen.height * 0.1,
+                      screen=Screen.screen):
 
     render_text = font_size.render(message, True, color)
-    adjusted_x = (x - render_text.get_width()) / 2
-    Screen.screen.blit(render_text, (adjusted_x, y))
+    adjusted_x = x - (render_text.get_width() / 2)
+    screen.blit(render_text, (adjusted_x, y))
 
 
 def display_text_over_multiple_lines(text, font, line_character_limit, start_x, start_y, line_height_step):
@@ -146,7 +147,7 @@ def display_text_over_multiple_lines(text, font, line_character_limit, start_x, 
             break
 
 
-def create_transparent_button(width, height, x, y):
+def create_transparent_button(width, height, x, y, screen=Screen.screen):
 
     mouse = pygame.mouse.get_pos()
 
@@ -154,7 +155,7 @@ def create_transparent_button(width, height, x, y):
         s = pygame.Surface((width, height))  # the size of your rect
         s.set_alpha(128)  # alpha level
         s.fill((255, 255, 255))  # this fills the entire surface
-        Screen.screen.blit(s, (x, y))  # (0,0) are the top-left coordinates
+        screen.blit(s, (x, y))  # (0,0) are the top-left coordinates
         for evnt in pygame.event.get():
             if evnt.type == pygame.MOUSEBUTTONUP:
                 return True
@@ -164,7 +165,7 @@ def create_text_button(font_choice, msg: str, x: int or float, y: int or float,
                        text_color: tuple[int, int, int] = Color.black,
                        default_color: tuple[int, int, int] = Color.slategray,
                        hover_color: tuple[int, int, int] = Color.lightgray,
-                       x_adjust: bool = False, click_sound: bool = True):
+                       x_adjust: bool = False, click_sound: bool = True, screen=Screen.screen):
 
     mouse = pygame.mouse.get_pos()
 
@@ -178,13 +179,13 @@ def create_text_button(font_choice, msg: str, x: int or float, y: int or float,
 
     # The experimental version
     if x + button_width > mouse[0] > x and y + button_height > mouse[1] > y:
-        pygame.draw.rect(Screen.screen, hover_color, (x, y, button_width, button_height))
+        pygame.draw.rect(screen, hover_color, (x, y, button_width, button_height))
         for evnt in pygame.event.get():
             if evnt.type == pygame.MOUSEBUTTONUP:
                 if click_sound:
                     print("No default click sound has been set")
                 return True
     else:
-        pygame.draw.rect(Screen.screen, default_color, (x, y, button_width, button_height))
+        pygame.draw.rect(screen, default_color, (x, y, button_width, button_height))
 
-    Screen.screen.blit(button_msg, (x + button_width / 10, y + button_height / 10))
+    screen.blit(button_msg, (x + button_width / 10, y + button_height / 10))
