@@ -1,4 +1,5 @@
 import pygame
+from pygame import mixer
 import sys
 import copy
 import random
@@ -9,6 +10,23 @@ pygame.init()
 pygame.display.set_caption("Benndot's Space Invaders")
 
 clock = pygame.time.Clock()
+
+
+class Song:
+
+    def __init__(self, name: str, path: str):
+        self.name = name
+        self.path = path
+
+    def play(self):
+        mixer.music.load(self.path)
+        mixer.music.play(-1)
+
+
+class Sound:
+    song_afterthought = Song("Afterthought", "audio/music-afterthought.mp3")
+    song_winters_love = Song("Winter's Love", "audio/music-winters_love.mp3")
+    soundtrack: list[Song] = [song_afterthought, song_winters_love]
 
 
 class Display:
@@ -122,6 +140,7 @@ class Arena:
         self.background: Image = background
         self.left_boundary = (Display.width - background.width) / 2
         self.right_boundary = ((Display.width - background.width) / 2) + background.width
+        self.margin_width = (Display.width - background.width) / 2
 
     def get_entity_right_boundary(self, entity):
         return self.right_boundary - entity.form.width
@@ -133,11 +152,14 @@ class Arenas:
 
 class Stage(Arena):
 
-    def __init__(self, background: Image, enemy_details):
+    def __init__(self, stage_id: int, name: str, background: Image, enemy_details, song):
         super().__init__(background)
+        self.stage_id = stage_id
+        self.name = name
         self.enemy_details: tuple[dict] = enemy_details
         self.enemy_list: list = []
         self.player = Player(Images.player, Display.width / 2, Display.height - Images.player.height, 3)
+        self.song: Song = song
 
     def generate_enemy_positions(self):
         for entry in self.enemy_details:
@@ -172,17 +194,20 @@ class Stage(Arena):
         for projectile in self.player.projectiles:
             for enemy in stage_one.enemy_list:
                 if not enemy.invulnerable and projectile.rect.colliderect(enemy):
-                    print("ITS A HIT")
+                    thump = mixer.Sound("audio/thump.mp3")
+                    mixer.Sound.play(thump)
                     self.player.projectiles.remove(projectile)
                     enemy.health -= 1
                     if enemy.health <= 0:
                         stage_one.enemy_list.remove(enemy)
+                        ow = mixer.Sound("audio/ow.mp3")
+                        mixer.Sound.play(ow)
                     enemy.invulnerable = True
                 if enemy.invulnerable and not projectile.rect.colliderect(enemy):
                     enemy.invulnerable = False
 
 
-stage_one = Stage(Images.backdrop,
+stage_one = Stage(1, "Park", Images.backdrop,
                   (
                       {"enemy": lesser_hippy, "count": 5, "x": [Arenas.park.left_boundary,
                                                                 Arenas.park.get_entity_right_boundary(lesser_hippy)],
@@ -190,12 +215,14 @@ stage_one = Stage(Images.backdrop,
                       {"enemy": greater_hippy, "count": 2, "x": [Arenas.park.left_boundary,
                                                                  Arenas.park.get_entity_right_boundary(greater_hippy)],
                        "y": [0, Display.height / 2.25]}
-                  )
+                  ),
+                  Sound.song_winters_love
                   )
 
 
 class Game:
     fps: int = 60
+    stage_list: list[Stage] = [stage_one]
     current_stage: Stage = stage_one
 
     @staticmethod
@@ -208,6 +235,8 @@ class Game:
 
 
 def start_menu():
+
+    Sound.song_afterthought.play()
 
     while True:
         Display.screen.fill((0, 0, 0))
@@ -254,6 +283,8 @@ def options():
 
 def game(stage: Stage):
 
+    stage.song.play()
+
     background: Image = Game.current_stage.background
 
     stage_one.generate_enemy_positions()
@@ -265,6 +296,11 @@ def game(stage: Stage):
     while True:
 
         background.display_center()
+
+        create_title_text(f"Stage 1", color=(200, 200, 200), x=stage.margin_width / 2, y=Display.height*0.02,
+                          screen=Display.screen)
+        create_title_text(f"{stage.name}", color=(255, 255, 255), x=stage.margin_width / 2, y=Display.height*0.1,
+                          screen=Display.screen)
 
         for evnt in pygame.event.get():
             Game.quit(evnt)
