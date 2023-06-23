@@ -54,10 +54,14 @@ class Image:
 
 
 class Images:
+
+    default_enemy_size = Display.game_zone / 11, Display.game_zone / 11
+
     player = Image("images/dad.png", Display.game_zone / 11, Display.game_zone / 11)
     backdrop = Image("images/backdrop_park.png", Display.width * 0.66, Display.height)
-    lesser_hippy = Image("images/hippie_green.png", Display.game_zone / 11, Display.game_zone / 11)
-    greater_hippy = Image("images/hippie_red.png", Display.game_zone / 11, Display.game_zone / 11)
+    hippy_speed = Image("images/hippie_brown.png", default_enemy_size[0], default_enemy_size[1])
+    hippy_basic = Image("images/hippie_green.png", default_enemy_size[0], default_enemy_size[1])
+    hippy_greater = Image("images/hippie_red.png", default_enemy_size[0], default_enemy_size[1])
     projectile = Image("images/baseball.png", Display.game_zone / 25, Display.game_zone / 25)
 
 
@@ -98,8 +102,9 @@ class Enemy(Entity):
         return f"{self.name}, x: {self.x}, y: {self.y}"
 
 
-lesser_hippy = Enemy("Lesser Hippy", Images.lesser_hippy, 1, Display.height / 150, 15)
-greater_hippy = Enemy("Greater Hippy", Images.greater_hippy, 2, Display.height / 120, 5)
+hippy_speed = Enemy("Speed Hippy", Images.hippy_speed, 1, Display.height / 90, 21)
+hippy_basic = Enemy("Lesser Hippy", Images.hippy_basic, 2, Display.height / 150, 14)
+hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 3, Display.height / 120, 7)
 
 
 class Player(Entity):
@@ -109,6 +114,7 @@ class Player(Entity):
         self.health = health
         self.momentum = 0
         self.projectiles = []
+        self.max_projectiles = 3
 
     def move(self):
         if self.momentum != 0:
@@ -121,9 +127,10 @@ class Player(Entity):
         self.display()
 
     def launch_projectile(self):
-        projectile = Projectile(Images.projectile, self.x + (Images.projectile.width / 2),
-                                self.y - Display.height / 30, Display.height / 112)
-        self.projectiles.append(projectile)
+        if len(self.projectiles) < self.max_projectiles:
+            projectile = Projectile(Images.projectile, self.x + (Images.projectile.width / 2),
+                                    self.y - Display.height / 30, Display.height / 112)
+            self.projectiles.append(projectile)
 
     def move_projectiles(self):
         for projectile in self.projectiles:
@@ -152,14 +159,15 @@ class Arenas:
 
 class Stage(Arena):
 
-    def __init__(self, stage_id: int, name: str, background: Image, enemy_details, song):
+    def __init__(self, stage_id: int, name: str, background: Image, enemy_details: tuple, song: Song):
         super().__init__(background)
         self.stage_id = stage_id
         self.name = name
-        self.enemy_details: tuple[dict] = enemy_details
-        self.enemy_list: list = []
+        self.enemy_details = enemy_details
+        self.enemy_list: list[Enemy] = []
         self.player = Player(Images.player, Display.width / 2, Display.height - Images.player.height, 3)
-        self.song: Song = song
+        self.song = song
+        self.is_complete: bool = False
 
     def generate_enemy_positions(self):
         for entry in self.enemy_details:
@@ -196,7 +204,10 @@ class Stage(Arena):
                 if not enemy.invulnerable and projectile.rect.colliderect(enemy):
                     thump = mixer.Sound("audio/thump.mp3")
                     mixer.Sound.play(thump)
-                    self.player.projectiles.remove(projectile)
+                    try:
+                        self.player.projectiles.remove(projectile)
+                    except ValueError:
+                        pass
                     enemy.health -= 1
                     if enemy.health <= 0:
                         stage_one.enemy_list.remove(enemy)
@@ -209,11 +220,29 @@ class Stage(Arena):
 
 stage_one = Stage(1, "Park", Images.backdrop,
                   (
-                      {"enemy": lesser_hippy, "count": 5, "x": [Arenas.park.left_boundary,
-                                                                Arenas.park.get_entity_right_boundary(lesser_hippy)],
+                      {"enemy": hippy_basic, "count": 6, "x": [Arenas.park.left_boundary,
+                                                               Arenas.park.get_entity_right_boundary(hippy_basic)],
                        "y": [0, Display.height / 2.25]},
-                      {"enemy": greater_hippy, "count": 2, "x": [Arenas.park.left_boundary,
-                                                                 Arenas.park.get_entity_right_boundary(greater_hippy)],
+
+                      {"enemy": hippy_greater, "count": 3, "x": [Arenas.park.left_boundary,
+                                                                 Arenas.park.get_entity_right_boundary(hippy_greater)],
+                       "y": [0, Display.height / 2.25]}
+                  ),
+                  Sound.song_winters_love
+                  )
+
+stage_two = Stage(2, "Park", Images.backdrop,
+                  (
+                      {"enemy": hippy_basic, "count": 4, "x": [Arenas.park.left_boundary,
+                                                               Arenas.park.get_entity_right_boundary(hippy_basic)],
+                       "y": [0, Display.height / 2.25]},
+
+                      {"enemy": hippy_greater, "count": 3, "x": [Arenas.park.left_boundary,
+                                                                 Arenas.park.get_entity_right_boundary(hippy_greater)],
+                       "y": [0, Display.height / 2.25]},
+
+                      {"enemy": hippy_speed, "count": 4, "x": [Arenas.park.left_boundary,
+                                                               Arenas.park.get_entity_right_boundary(hippy_speed)],
                        "y": [0, Display.height / 2.25]}
                   ),
                   Sound.song_winters_love
@@ -222,7 +251,7 @@ stage_one = Stage(1, "Park", Images.backdrop,
 
 class Game:
     fps: int = 60
-    stage_list: list[Stage] = [stage_one]
+    stage_list: list[Stage] = [stage_one, stage_two]
     current_stage: Stage = stage_one
 
     @staticmethod
@@ -316,6 +345,7 @@ def game(stage: Stage):
                         evnt.key == pygame.K_a:
                     stage.player.momentum = 0
                 if evnt.key == pygame.K_ESCAPE:
+                    stage.enemy_list = []  # Only reset currently
                     main()
 
         Game.current_stage.move_enemies()

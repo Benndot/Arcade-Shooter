@@ -2,6 +2,15 @@
 
 An attempt at making a two-dimensional arcade-style shooting game. 
 
+## Game Overview
+
+The game is currently story-less, but currently centers around a "suburban dad" stereotype character facing off against
+a hoard of hippies.
+
+The gameplay is that of a classic 2D vertical shooter, where the player moves back and forth on the x-axis and fires 
+projectiles at enemies located above. Left and right movement is performed either with arrow keys or WASD. Each press of
+the space bar launches a projectile, though the number of projectiles allowed at once are limited. 
+
 ## todo
 
 implement victory and defeat scenarios
