@@ -66,51 +66,43 @@ class MusicSettings:
         mixer.music.play(-1)
 
 
-class Screen:
-    width = 1080
-    height = 720
+class Display:
+    dimensions_540p_resolution = (960, 540)
+    dimensions_720p_resolution = (1280, 720)
+    dimensions_900p_resolution = (1600, 900)
+    dimensions_1080p_resolution = (1920, 1080)
+    screen_ratio: float = 0.5625
+    width = 1600
+    height = 900
     screen = pygame.display.set_mode((width, height))
+    game_zone = width * 0.66
 
-    def update_screen(self):
-        self.screen = pygame.display.set_mode((self.width, self.height))
+    @staticmethod
+    def update_screen_and_game_zone():
+        Display.screen = pygame.display.set_mode((Display.width, Display.height))
+        Display.game_zone = Display.width * 0.66
 
-    def make_default(self):
-        self.width = 1080
-        self.height = 720
-        self.update_screen()
-
-    def make_large(self):
-        self.width = 1600
-        self.height = 900
-        self.update_screen()
-
-    def make_fullscreen(self):
-        self.width = 1920
-        self.height = 1080
-        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
-
-    def cycle_screen_resize(self):
-        if self.width == 1080:
-            self.make_large()
-        elif self.width == 1600:
-            self.make_fullscreen()
-        else:
-            self.make_default()
+    @staticmethod
+    def set_resolution(dimensions: tuple[int, int]):
+        width, height = dimensions[0], dimensions[1]
+        Display.width = width
+        Display.height = height
+        Display.update_screen_and_game_zone()
 
 
 class Font:
-    xxl = pygame.font.SysFont("bahnschrift", math.ceil(Screen.height * 0.0695 * 1.4))
-    xl = pygame.font.SysFont("bahnschrift", math.ceil(Screen.height * 0.0695 * 1.2))
-    lg = pygame.font.SysFont("bahnschrift", math.ceil(Screen.height * 0.0695))
-    med_lg = pygame.font.SysFont("bahnschrift", math.ceil(Screen.height * 0.0695 * 0.8))
-    med = pygame.font.SysFont("bahnschrift", math.ceil(Screen.height * 0.0695 * 0.6))
-    sml_med = pygame.font.SysFont("bahnschrift", math.ceil(Screen.height * 0.0695 * 0.45))
-    sml = pygame.font.SysFont("bahnschrift", math.ceil(Screen.height * 0.0695 * 0.33))
+    xxl = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 1.4))
+    xl = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 1.2))
+    lg = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695))
+    med_lg = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 0.8))
+    med = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 0.6))
+    sml_med = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 0.45))
+    sml = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 0.33))
 
 
 # Utility functions for text and buttons ----------------------------------------------------------------------------
 
-def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False, screen=Screen.screen):
+def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False, screen=Display.screen):
 
     text = font_size.render(message, True, color)
 
@@ -121,8 +113,8 @@ def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False
     screen.blit(text, (x, y))
 
 
-def create_title_text(message, font_size=Font.lg, color=(0, 0, 0), x=Screen.width / 2, y=Screen.height * 0.1,
-                      screen=Screen.screen):
+def create_title_text(message, font_size=Font.lg, color=(0, 0, 0), x=Display.width / 2, y=Display.height * 0.1,
+                      screen=Display.screen):
 
     render_text = font_size.render(message, True, color)
     adjusted_x = x - (render_text.get_width() / 2)
@@ -147,7 +139,7 @@ def display_text_over_multiple_lines(text, font, line_character_limit, start_x, 
             break
 
 
-def create_transparent_button(width, height, x, y, screen=Screen.screen):
+def create_transparent_button(width, height, x, y, screen=Display.screen):
 
     mouse = pygame.mouse.get_pos()
 
@@ -165,7 +157,7 @@ def create_text_button(font_choice, msg: str, x: int or float, y: int or float,
                        text_color: tuple[int, int, int] = Color.black,
                        default_color: tuple[int, int, int] = Color.slategray,
                        hover_color: tuple[int, int, int] = Color.lightgray,
-                       x_adjust: bool = False, click_sound: bool = True, screen=Screen.screen):
+                       x_adjust: bool = False, click_sound: bool = True, screen=Display.screen):
 
     mouse = pygame.mouse.get_pos()
 

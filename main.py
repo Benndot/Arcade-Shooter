@@ -3,7 +3,7 @@ from pygame import mixer
 import sys
 import copy
 import random
-from game_utils import Font, create_title_text, create_text_button
+from game_utils import Font, Display, create_title_text, create_text_button
 
 pygame.init()
 
@@ -27,13 +27,6 @@ class Sound:
     song_afterthought = Song("Afterthought", "audio/music-afterthought.mp3")
     song_winters_love = Song("Winter's Love", "audio/music-winters_love.mp3")
     soundtrack: list[Song] = [song_afterthought, song_winters_love]
-
-
-class Display:
-    width = 1600
-    height = 900
-    screen = pygame.display.set_mode((width, height))
-    game_zone = width * 0.66
 
 
 class Image:
@@ -145,6 +138,7 @@ class Arena:
 
     def __init__(self, background: Image):
         self.background: Image = background
+        self.height = Display.height
         self.left_boundary = (Display.width - background.width) / 2
         self.right_boundary = ((Display.width - background.width) / 2) + background.width
         self.margin_width = (Display.width - background.width) / 2
@@ -231,7 +225,7 @@ stage_one = Stage(1, "Park", Images.backdrop,
                   Sound.song_winters_love
                   )
 
-stage_two = Stage(2, "Park", Images.backdrop,
+stage_two = Stage(2, "Camp", Images.backdrop,
                   (
                       {"enemy": hippy_basic, "count": 4, "x": [Arenas.park.left_boundary,
                                                                Arenas.park.get_entity_right_boundary(hippy_basic)],
@@ -261,6 +255,39 @@ class Game:
             sys.exit()
 
 # GAME SCREENS --------------------------------------------------------------------------------------------------------
+
+
+def choose_resolution(next_function: callable):
+    Display.set_resolution(Display.dimensions_540p_resolution)
+
+    resolutions: list[tuple[int, int]] = [Display.dimensions_540p_resolution, Display.dimensions_720p_resolution,
+                                          Display.dimensions_900p_resolution, Display.dimensions_1080p_resolution]
+    resolution_names: list[str] = ["540p", "720p", "900p", "1080p"]
+
+    while True:
+        Display.screen.fill((0, 0, 0))
+
+        create_title_text("Choose Resolution", color=(255, 255, 255), x=Display.width * 0.5,
+                          screen=Display.screen)
+
+        button_pos_offset: float = 0.35
+
+        for index, res in enumerate(resolutions):
+
+            res_button = create_text_button(Font.lg, f"{resolution_names[index]}", Display.width * 0.5,
+                                            Display.height * button_pos_offset, x_adjust=True, screen=Display.screen)
+
+            if res_button:
+                Display.set_resolution(res)
+                next_function()
+
+            button_pos_offset += 0.15
+
+        for evnt in pygame.event.get():
+            Game.quit(evnt)
+
+        pygame.display.update()
+        clock.tick(Game.fps)
 
 
 def start_menu():
@@ -311,6 +338,15 @@ def options():
 
 
 def game(stage: Stage):
+
+    # Images.backdrop.update_size()
+    #
+    # for stage in Game.stage_list:
+    #     stage.update_boundaries()
+    #
+    # print(f"Display dimensions: {Display.width} / {Display.height} / {Display.game_zone}")
+    # print(Images.backdrop.width, Images.backdrop.height)
+    # print(Game.current_stage.background.width, Game.current_stage.background.height)
 
     stage.song.play()
 
@@ -363,7 +399,7 @@ def main():
 
     while True:
 
-        start_menu()
+        choose_resolution(start_menu)
 
         for evnt in pygame.event.get():
             Game.quit(evnt)

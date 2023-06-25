@@ -11,6 +11,13 @@ The gameplay is that of a classic 2D vertical shooter, where the player moves ba
 projectiles at enemies located above. Left and right movement is performed either with arrow keys or WASD. Each press of
 the space bar launches a projectile, though the number of projectiles allowed at once are limited. 
 
+## Current State
+
+Core gameplay has been implemented, but the game loops has not been completed. 
+
+While the game can work in multiple sizes/resolutions, more solutions must be implemented before it will be able to swap
+between sizes on the fly.
+
 ## todo
 
 implement victory and defeat scenarios
