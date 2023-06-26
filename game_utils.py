@@ -91,16 +91,34 @@ class Display:
 
 
 class Font:
-    xxl = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 1.4))
-    xl = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 1.2))
-    lg = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695))
-    med_lg = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 0.8))
-    med = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 0.6))
-    sml_med = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 0.45))
-    sml = pygame.font.SysFont("bahnschrift", math.ceil(Display.height * 0.0695 * 0.33))
 
+    def __init__(self, font_name: str, size_factor: float):
+        self.font_name = font_name
+        self.size_factor = size_factor
+        self.font = pygame.font.SysFont(self.font_name, math.ceil(Display.height * 0.0695 * self.size_factor))
+
+    def update(self):
+        self.font = pygame.font.SysFont(self.font_name, math.ceil(Display.height * 0.0695 * self.size_factor))
+
+
+class Fonts:
+    xxl = Font("bahnschrift", 1.4)
+    xl = Font("bahnschrift", 1.2)
+    lg = Font("bahnschrift", 1)
+    med_lg = Font("bahnschrift", 0.8)
+    med = Font("bahnschrift", 0.6)
+    sml_med = Font("bahnschrift", 0.45)
+    sml = Font("bahnschrift", 0.33)
+
+    font_list = [sml, sml_med, med, med_lg, lg, xl, xxl]
+
+    @staticmethod
+    def update_fonts():
+        for font in Fonts.font_list:
+            font.update()
 
 # Utility functions for text and buttons ----------------------------------------------------------------------------
+
 
 def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False, screen=Display.screen):
 
@@ -113,7 +131,7 @@ def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False
     screen.blit(text, (x, y))
 
 
-def create_title_text(message, font_size=Font.lg, color=(0, 0, 0), x=Display.width / 2, y=Display.height * 0.1,
+def create_title_text(message, font_size=Fonts.lg.font, color=(0, 0, 0), x=Display.width / 2, y=Display.height * 0.1,
                       screen=Display.screen):
 
     render_text = font_size.render(message, True, color)

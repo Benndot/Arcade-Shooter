@@ -3,7 +3,7 @@ from pygame import mixer
 import sys
 import copy
 import random
-from game_utils import Font, Display, create_title_text, create_text_button
+from game_utils import Fonts, Display, create_title_text, create_text_button
 
 pygame.init()
 
@@ -274,11 +274,12 @@ def choose_resolution(next_function: callable):
 
         for index, res in enumerate(resolutions):
 
-            res_button = create_text_button(Font.lg, f"{resolution_names[index]}", Display.width * 0.5,
+            res_button = create_text_button(Fonts.lg.font, f"{resolution_names[index]}", Display.width * 0.5,
                                             Display.height * button_pos_offset, x_adjust=True, screen=Display.screen)
 
             if res_button:
                 Display.set_resolution(res)
+                Fonts.update_fonts()
                 next_function()
 
             button_pos_offset += 0.15
@@ -300,13 +301,13 @@ def start_menu():
         create_title_text("Benndot's Arcade Shooter", color=(255, 255, 255), x=Display.width * 0.5,
                           screen=Display.screen)
 
-        play_button = create_text_button(Font.xl, "PLAY", Display.width * 0.5, Display.height * 0.4,
+        play_button = create_text_button(Fonts.xl.font, "PLAY", Display.width * 0.5, Display.height * 0.4,
                                          x_adjust=True, screen=Display.screen)
 
         if play_button:
             game(Game.current_stage)
 
-        settings_button = create_text_button(Font.lg, "SETTINGS", Display.width * 0.5, Display.height * 0.65,
+        settings_button = create_text_button(Fonts.lg.font, "SETTINGS", Display.width * 0.5, Display.height * 0.65,
                                              x_adjust=True, screen=Display.screen)
 
         if settings_button:
