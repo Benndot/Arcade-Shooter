@@ -84,9 +84,9 @@ class Display:
 
     @staticmethod
     def set_resolution(dimensions: tuple[int, int]):
-        width, height = dimensions[0], dimensions[1]
-        Display.width = width
-        Display.height = height
+        new_width, new_height = dimensions[0], dimensions[1]
+        Display.width = new_width
+        Display.height = new_height
         Display.update_screen_and_game_zone()
 
 

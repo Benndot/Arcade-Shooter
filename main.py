@@ -30,32 +30,54 @@ class Sound:
 
 
 class Image:
-    def __init__(self, image_path: str, width, height):
+    def __init__(self, image_path: str, scale: int, custom_width: callable = None, custom_height: callable = None):
         self.image_path = image_path
-        self.width = width
-        self.height = height
+        self.scale = scale
+        self.custom_width = custom_width  # Optional function input to change the dimensions
+        self.custom_height = custom_height
         self.raw_image = pygame.image.load(image_path)
-        self.image = pygame.transform.scale(self.raw_image, (width, height))
         self.rect = self.image.get_rect()
+
+    @property
+    def width(self):
+        return Display.game_zone / self.scale if not self.custom_width else self.custom_width()
+
+    @property
+    def height(self):
+        return Display.game_zone / self.scale if not self.custom_height else self.custom_height()
+
+    @property
+    def image(self):
+        return pygame.transform.scale(self.raw_image, (self.width, self.height))
 
     def display_self(self, x, y):
         Display.screen.blit(self.image, (x, y))
 
-    def display_center(self):
+    def center_on_screen(self):
         adjusted_x = (Display.width - self.image.get_width()) / 2
         Display.screen.blit(self.image, (adjusted_x, 0))
+
+    def update_size_and_rect(self):
+        self.rect = self.image.get_rect()
 
 
 class Images:
 
-    default_enemy_size = Display.game_zone / 11, Display.game_zone / 11
+    default_enemy_scale = 11
 
-    player = Image("images/dad.png", Display.game_zone / 11, Display.game_zone / 11)
-    backdrop = Image("images/backdrop_park.png", Display.width * 0.66, Display.height)
-    hippy_speed = Image("images/hippie_brown.png", default_enemy_size[0], default_enemy_size[1])
-    hippy_basic = Image("images/hippie_green.png", default_enemy_size[0], default_enemy_size[1])
-    hippy_greater = Image("images/hippie_red.png", default_enemy_size[0], default_enemy_size[1])
-    projectile = Image("images/baseball.png", Display.game_zone / 25, Display.game_zone / 25)
+    player = Image("images/dad.png", 11)
+    backdrop = Image("images/backdrop_park.png", 1, custom_height=Display.screen.get_height)
+    hippy_speed = Image("images/hippie_brown.png", 11)
+    hippy_basic = Image("images/hippie_green.png", 11)
+    hippy_greater = Image("images/hippie_red.png", 11)
+    projectile = Image("images/baseball.png", 25)
+
+    images_list = [player, backdrop, hippy_speed, hippy_basic, hippy_greater, projectile]
+
+    @staticmethod
+    def update_all_images():
+        for image in Images.images_list:
+            image.update_size_and_rect()
 
 
 class Entity:
@@ -138,7 +160,7 @@ class Arena:
 
     def __init__(self, background: Image):
         self.background: Image = background
-        self.height = Display.height
+        # self.height = Display.height
         self.left_boundary = (Display.width - background.width) / 2
         self.right_boundary = ((Display.width - background.width) / 2) + background.width
         self.margin_width = (Display.width - background.width) / 2
@@ -278,8 +300,13 @@ def choose_resolution(next_function: callable):
                                             Display.height * button_pos_offset, x_adjust=True, screen=Display.screen)
 
             if res_button:
+                print(Images.backdrop.height)
+                print(Images.player.height)
                 Display.set_resolution(res)
                 Fonts.update_fonts()
+                Images.update_all_images()
+                print(Images.backdrop.height)
+                print(Images.player.height)
                 next_function()
 
             button_pos_offset += 0.15
@@ -361,7 +388,7 @@ def game(stage: Stage):
 
     while True:
 
-        background.display_center()
+        background.center_on_screen()
 
         create_title_text(f"Stage 1", color=(200, 200, 200), x=stage.margin_width / 2, y=Display.height*0.02,
                           screen=Display.screen)
