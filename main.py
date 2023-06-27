@@ -172,6 +172,10 @@ class Arena:
     def get_entity_right_boundary(self, entity):
         return self.right_boundary - entity.form.width
 
+    def update_boundaries(self):
+        self.left_boundary = (Display.width - self.background.width) / 2
+        self.right_boundary = ((Display.width - self.background.width) / 2) + self.background.width
+
 
 class Arenas:
     park = Arena(Images.backdrop)
@@ -193,19 +197,14 @@ class Stage(Arena):
         for entry in self.enemy_details:
             for _ in range(entry["count"]):
                 enemy = copy.copy(entry["enemy"])
-                if len(entry["x"]) == 2:
-                    position = random.randint(int(entry["x"][0]), int(entry["x"][1]))
-                    enemy.x = position
-                else:
-                    enemy.x = entry["x"][0]
 
-                if len(entry["y"]) == 2:
-                    position = random.randint(entry["y"][0], entry["y"][1])
-                    enemy.y = position
-                else:
-                    enemy.y = entry["y"][0]
+                x = random.randint(int(self.left_boundary), int(self.get_entity_right_boundary(enemy)))
+                enemy.x = x
 
-                enemy.speed = random.choice([enemy.speed, -enemy.speed])
+                y = random.randint(0, int(Display.height * 0.5))
+                enemy.y = y
+
+                enemy.speed = random.choice([enemy.speed, -enemy.speed])  # A bit out of place here
 
                 self.enemy_list.append(enemy)
 
@@ -240,30 +239,20 @@ class Stage(Arena):
 
 stage_one = Stage(1, "Park", Images.backdrop,
                   (
-                      {"enemy": hippy_basic, "count": 6, "x": [Arenas.park.left_boundary,
-                                                               Arenas.park.get_entity_right_boundary(hippy_basic)],
-                       "y": [0, Display.height / 2.25]},
+                      {"enemy": hippy_basic, "count": 6, "y": [0, Display.height / 2.25]},
 
-                      {"enemy": hippy_greater, "count": 3, "x": [Arenas.park.left_boundary,
-                                                                 Arenas.park.get_entity_right_boundary(hippy_greater)],
-                       "y": [0, Display.height / 2.25]}
+                      {"enemy": hippy_greater, "count": 3, "y": [0, Display.height / 2.25]}
                   ),
                   Sound.song_winters_love
                   )
 
 stage_two = Stage(2, "Camp", Images.backdrop,
                   (
-                      {"enemy": hippy_basic, "count": 4, "x": [Arenas.park.left_boundary,
-                                                               Arenas.park.get_entity_right_boundary(hippy_basic)],
-                       "y": [0, Display.height / 2.25]},
+                      {"enemy": hippy_basic, "count": 4, "y": [0, Display.height / 2.25]},
 
-                      {"enemy": hippy_greater, "count": 3, "x": [Arenas.park.left_boundary,
-                                                                 Arenas.park.get_entity_right_boundary(hippy_greater)],
-                       "y": [0, Display.height / 2.25]},
+                      {"enemy": hippy_greater, "count": 3, "y": [0, Display.height / 2.25]},
 
-                      {"enemy": hippy_speed, "count": 4, "x": [Arenas.park.left_boundary,
-                                                               Arenas.park.get_entity_right_boundary(hippy_speed)],
-                       "y": [0, Display.height / 2.25]}
+                      {"enemy": hippy_speed, "count": 4, "y": [0, Display.height / 2.25]}
                   ),
                   Sound.song_winters_love
                   )
@@ -369,16 +358,11 @@ def options():
 
 def game(stage: Stage):
 
-    # print(Images.backdrop.width, Images.backdrop.height)
-    # print(Game.current_stage.background.width, Game.current_stage.background.height)
-
     stage.song.play()
 
-    background: Image = Game.current_stage.background
+    stage.update_boundaries()
 
-    stage_one.generate_enemy_positions()
-    # for enemy in stage_one.enemy_list:
-    #     print(enemy.__str__())
+    background: Image = Game.current_stage.background
 
     stage.player.place_initial_position()
 
