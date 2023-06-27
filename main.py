@@ -284,7 +284,9 @@ class Game:
 
 
 def choose_resolution(next_function: callable):
+
     Display.set_resolution(Display.dimensions_540p_resolution)
+    Fonts.update_fonts()
 
     resolutions: list[tuple[int, int]] = [Display.dimensions_540p_resolution, Display.dimensions_720p_resolution,
                                           Display.dimensions_900p_resolution, Display.dimensions_1080p_resolution]
@@ -367,12 +369,6 @@ def options():
 
 def game(stage: Stage):
 
-    # Images.backdrop.update_size()
-    #
-    # for stage in Game.stage_list:
-    #     stage.update_boundaries()
-    #
-    # print(f"Display dimensions: {Display.width} / {Display.height} / {Display.game_zone}")
     # print(Images.backdrop.width, Images.backdrop.height)
     # print(Game.current_stage.background.width, Game.current_stage.background.height)
 
