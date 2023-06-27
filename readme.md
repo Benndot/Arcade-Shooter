@@ -20,6 +20,12 @@ between sizes on the fly.
 
 ## todo
 
+make entity speed and entity movement boundaries scale 
+
+move player object from stage to game or elsewhere
+
+add enemy collision and player health loss
+
 implement victory and defeat scenarios
 
 introduce more stages and more enemy types

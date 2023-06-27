@@ -124,12 +124,16 @@ hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 3, Display.height /
 
 class Player(Entity):
 
-    def __init__(self, form, x, y, health):
+    def __init__(self, form, health, x=0, y=0):
         super().__init__(form, x, y)
         self.health = health
         self.momentum = 0
         self.projectiles = []
         self.max_projectiles = 3
+
+    def place_initial_position(self):
+        self.y = Display.screen.get_height() - self.form.height
+        self.x = (Display.screen.get_width() - self.form.width) / 2
 
     def move(self):
         if self.momentum != 0:
@@ -181,7 +185,7 @@ class Stage(Arena):
         self.name = name
         self.enemy_details = enemy_details
         self.enemy_list: list[Enemy] = []
-        self.player = Player(Images.player, Display.width / 2, Display.height - Images.player.height, 3)
+        self.player = Player(Images.player, 3, x=Display.width / 2, y=Display.height - Images.player.height)
         self.song = song
         self.is_complete: bool = False
 
@@ -300,13 +304,9 @@ def choose_resolution(next_function: callable):
                                             Display.height * button_pos_offset, x_adjust=True, screen=Display.screen)
 
             if res_button:
-                print(Images.backdrop.height)
-                print(Images.player.height)
                 Display.set_resolution(res)
                 Fonts.update_fonts()
                 Images.update_all_images()
-                print(Images.backdrop.height)
-                print(Images.player.height)
                 next_function()
 
             button_pos_offset += 0.15
@@ -383,6 +383,8 @@ def game(stage: Stage):
     stage_one.generate_enemy_positions()
     # for enemy in stage_one.enemy_list:
     #     print(enemy.__str__())
+
+    stage.player.place_initial_position()
 
     Display.screen.fill((0, 0, 0))
 

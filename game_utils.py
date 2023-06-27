@@ -78,8 +78,12 @@ class Display:
     game_zone = width * 0.66
 
     @staticmethod
-    def update_screen_and_game_zone():
-        Display.screen = pygame.display.set_mode((Display.width, Display.height))
+    def update_screen_and_game_zone(dimensions: tuple[int, int]):
+        if dimensions == Display.dimensions_1080p_resolution:
+            Display.screen = pygame.display.set_mode((Display.width, Display.height), pygame.FULLSCREEN)
+        else:
+            Display.screen = pygame.display.set_mode((Display.width, Display.height))
+
         Display.game_zone = Display.width * 0.66
 
     @staticmethod
@@ -87,7 +91,7 @@ class Display:
         new_width, new_height = dimensions[0], dimensions[1]
         Display.width = new_width
         Display.height = new_height
-        Display.update_screen_and_game_zone()
+        Display.update_screen_and_game_zone(dimensions)
 
 
 class Font:
