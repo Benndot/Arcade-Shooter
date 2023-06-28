@@ -22,6 +22,8 @@ currently still some issues with scaling, normal gameplay in typical aspect rati
 
 ## todo
 
+iterate through enemy details dict in order to list of their health and images in the right margin
+
 move player object from stage to game or elsewhere
 
 add enemy collision and player health loss

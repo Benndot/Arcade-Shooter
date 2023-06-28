@@ -3,7 +3,7 @@ from pygame import mixer
 import sys
 import copy
 import random
-from game_utils import Fonts, Display, create_title_text, create_text_button
+from game_utils import Fonts, Display, create_onscreen_text, create_title_text, create_text_button
 
 pygame.init()
 
@@ -89,7 +89,7 @@ class Entity:
         self.speed_divisor = speed_divisor
         self.rect = pygame.Rect(self.x, self.y, self.form.image.get_rect().width, self.form.image.get_rect().height)
 
-    def display(self):
+    def display_entity(self):
         Display.screen.blit(self.form.image, (self.x, self.y))
 
     def update_rect(self):
@@ -167,7 +167,7 @@ class Player(Entity):
             if self.x >= ((Display.width - Display.game_zone) / 2) + Display.game_zone - self.form.width:
                 self.x = ((Display.width - Display.game_zone) / 2) + Display.game_zone - self.form.width
         self.update_rect()
-        self.display()
+        self.display_entity()
 
     def launch_projectile(self):
         if len(self.projectiles) < self.max_projectiles:
@@ -181,7 +181,7 @@ class Player(Entity):
             if projectile.y < -50:
                 self.projectiles.remove(projectile)
             projectile.update_rect()
-            projectile.display()
+            projectile.display_entity()
 
 
 class Arena:
@@ -189,16 +189,25 @@ class Arena:
     def __init__(self, background: Image):
         self.background: Image = background
         # self.height = Display.height
-        self.left_boundary = (Display.width - background.width) / 2
-        self.right_boundary = ((Display.width - background.width) / 2) + background.width
-        self.margin_width = (Display.width - background.width) / 2
+
+    @property
+    def left_boundary(self):
+        return (Display.width - self.background.width) / 2
+
+    @property
+    def right_boundary(self):
+        return ((Display.width - self.background.width) / 2) + self.background.width
+
+    @property
+    def margin_width(self):
+        return (Display.width - self.background.width) / 2
+
+    @property
+    def right_margin_x(self):
+        return Display.width - self.margin_width
 
     def get_entity_right_boundary(self, entity):
         return self.right_boundary - entity.form.width
-
-    def update_boundaries(self):
-        self.left_boundary = (Display.width - self.background.width) / 2
-        self.right_boundary = ((Display.width - self.background.width) / 2) + self.background.width
 
 
 class Arenas:
@@ -237,7 +246,7 @@ class Stage(Arena):
                 enemy.y += enemy.descent
                 enemy.reverse_motion = not enemy.reverse_motion
             enemy.update_rect()
-            enemy.display()
+            enemy.display_entity()
 
     def detect_collision(self):
         for projectile in self.player.projectiles:
@@ -383,8 +392,6 @@ def game(stage: Stage):
 
     stage.song.play()
 
-    stage.update_boundaries()
-
     stage.generate_enemy_positions()
 
     background: Image = Game.current_stage.background
@@ -397,16 +404,25 @@ def game(stage: Stage):
 
         background.center_on_screen()
 
-        create_title_text(f"Stage 1", color=(200, 200, 200), x=stage.margin_width / 2, y=Display.height*0.02,
-                          screen=Display.screen)
+        create_title_text(f"Stage {stage.stage_id}", color=(200, 200, 200), x=stage.margin_width / 2,
+                          y=Display.height*0.02, screen=Display.screen)
         create_title_text(f"{stage.name}", color=(255, 255, 255), x=stage.margin_width / 2, y=Display.height*0.1,
                           screen=Display.screen)
+
+        create_onscreen_text(Fonts.med.font, (200, 200, 200), f"Remaining", stage.right_margin_x +
+                             stage.margin_width / 2, Display.height * 0.02, True, Display.screen)
+        create_title_text(f"{len(stage.enemy_list)}", color=(255, 255, 255),
+                          x=stage.right_margin_x + stage.margin_width / 2, y=Display.height * 0.08,
+                          screen=Display.screen)
+
+        Images.hippy_greater.display_self(stage.right_margin_x + Display.width / 100, Display.height * 0.5)
 
         for evnt in pygame.event.get():
             Game.quit(evnt)
             stage.player.controls(evnt)
             if evnt.type == pygame.KEYUP:
                 if evnt.key == pygame.K_ESCAPE:
+                    stage.player.projectiles = []
                     stage.enemy_list = []  # Only reset currently
                     main()
 

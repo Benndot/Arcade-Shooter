@@ -101,6 +101,10 @@ class Font:
         self.size_factor = size_factor
         self.font = pygame.font.SysFont(self.font_name, math.ceil(Display.height * 0.0695 * self.size_factor))
 
+    @property
+    def size(self):
+        return math.ceil(Display.height * 0.0695 * self.size_factor)
+
     def update(self):
         self.font = pygame.font.SysFont(self.font_name, math.ceil(Display.height * 0.0695 * self.size_factor))
 
@@ -135,12 +139,16 @@ def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False
     screen.blit(text, (x, y))
 
 
-def create_title_text(message, font_size=Fonts.lg.font, color=(0, 0, 0), x=Display.width / 2, y=Display.height * 0.1,
-                      screen=Display.screen):
+def create_title_text(message, color=(0, 0, 0), screen=Display.screen, x=None, y=None):
+
+    font_size = Fonts.lg.font
+    confirmed_x = Display.width / 2 if not x else x
+    confirmed_y = Display.height * 0.1 if not y else y
 
     render_text = font_size.render(message, True, color)
-    adjusted_x = x - (render_text.get_width() / 2)
-    screen.blit(render_text, (adjusted_x, y))
+    adjusted_x = confirmed_x - (render_text.get_width() / 2)
+
+    screen.blit(render_text, (adjusted_x, confirmed_y))
 
 
 def display_text_over_multiple_lines(text, font, line_character_limit, start_x, start_y, line_height_step):
