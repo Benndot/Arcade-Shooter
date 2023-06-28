@@ -82,10 +82,11 @@ class Images:
 
 class Entity:
 
-    def __init__(self, form: Image, x: float or int, y: float or int):
+    def __init__(self, form: Image, x: float or int, y: float or int, speed: float):
         self.form = form
         self.x = x
         self.y = y
+        self.speed = speed
         self.rect = pygame.Rect(self.x, self.y, self.form.image.get_rect().width, self.form.image.get_rect().height)
 
     def display(self):
@@ -98,14 +99,13 @@ class Entity:
 class Projectile(Entity):
 
     def __init__(self, form, x, y, speed):
-        super().__init__(form, x, y)
-        self.speed = speed
+        super().__init__(form, x, y, speed)
 
 
 class Enemy(Entity):
 
     def __init__(self, name: str, form: Image, health: int, speed, descent, x=0, y=0):
-        super().__init__(form, x, y)
+        super().__init__(form, x, y, speed)
         self.name = name
         self.health = health
         self.speed = speed
@@ -125,7 +125,7 @@ hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 3, Display.height /
 class Player(Entity):
 
     def __init__(self, form, health, speed=0, x=0, y=0):
-        super().__init__(form, x, y)
+        super().__init__(form, x, y, speed)
         self.health = health
         self.speed = speed
         self.projectiles = []
@@ -134,6 +134,19 @@ class Player(Entity):
     def place_initial_position(self):
         self.y = Display.screen.get_height() - self.form.height
         self.x = (Display.screen.get_width() - self.form.width) / 2
+
+    def controls(self, evnt):
+        if evnt.type == pygame.KEYDOWN:
+            if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_d:
+                self.speed = Display.height / 112
+            if evnt.key == pygame.K_LEFT or evnt.key == pygame.K_a:
+                self.speed = - Display.height / 112
+            if evnt.key == pygame.K_SPACE:
+                self.launch_projectile()
+        if evnt.type == pygame.KEYUP:
+            if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_LEFT or evnt.key == pygame.K_d or \
+                    evnt.key == pygame.K_a:
+                self.speed = 0
 
     def move(self):
         if self.speed != 0:
@@ -381,17 +394,8 @@ def game(stage: Stage):
 
         for evnt in pygame.event.get():
             Game.quit(evnt)
-            if evnt.type == pygame.KEYDOWN:
-                if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_d:
-                    stage.player.speed = Display.height / 112
-                if evnt.key == pygame.K_LEFT or evnt.key == pygame.K_a:
-                    stage.player.speed = - Display.height / 112
-                if evnt.key == pygame.K_SPACE:
-                    stage.player.launch_projectile()
+            stage.player.controls(evnt)
             if evnt.type == pygame.KEYUP:
-                if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_LEFT or evnt.key == pygame.K_d or \
-                        evnt.key == pygame.K_a:
-                    stage.player.speed = 0
                 if evnt.key == pygame.K_ESCAPE:
                     stage.enemy_list = []  # Only reset currently
                     main()

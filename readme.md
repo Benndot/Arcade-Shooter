@@ -28,6 +28,8 @@ add enemy collision and player health loss
 
 implement victory and defeat scenarios
 
+add sound effect volume controls
+
 introduce more stages and more enemy types
 
 implement proper pre-game set up and post-game/post-return-to-menu resets
