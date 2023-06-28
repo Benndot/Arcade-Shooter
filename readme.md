@@ -13,14 +13,14 @@ the space bar launches a projectile, though the number of projectiles allowed at
 
 ## Current State
 
-Core gameplay has been implemented, but the game loops has not been completed. 
+Core gameplay has been implemented, but the game loops has not been completed. The player can move and shoot, and the 
+enemies will be generated, will move and can be hit by the player's projectile's. However, there is currently no way to 
+lose, and no trigger for victory. 
 
-While the game can work in multiple sizes/resolutions, more solutions must be implemented before it will be able to swap
-between sizes on the fly.
+The game works in multiple resolutions and can be swapped between resolutions during gameplay. Although there are 
+currently still some issues with scaling, normal gameplay in typical aspect ratios does work fine. 
 
 ## todo
-
-make entity speed scale at different resolutions
 
 move player object from stage to game or elsewhere
 
@@ -29,6 +29,8 @@ add enemy collision and player health loss
 implement victory and defeat scenarios
 
 add sound effect volume controls
+
+turn player projectile limit into a time-based cooldown
 
 introduce more stages and more enemy types
 

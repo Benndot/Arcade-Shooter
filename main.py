@@ -82,11 +82,11 @@ class Images:
 
 class Entity:
 
-    def __init__(self, form: Image, x: float or int, y: float or int, speed: float):
+    def __init__(self, form: Image, x: float or int, y: float or int, speed_divisor: int):
         self.form = form
         self.x = x
         self.y = y
-        self.speed = speed
+        self.speed_divisor = speed_divisor
         self.rect = pygame.Rect(self.x, self.y, self.form.image.get_rect().width, self.form.image.get_rect().height)
 
     def display(self):
@@ -98,34 +98,45 @@ class Entity:
 
 class Projectile(Entity):
 
-    def __init__(self, form, x, y, speed):
-        super().__init__(form, x, y, speed)
+    def __init__(self, form, x, y, speed_divisor):
+        super().__init__(form, x, y, speed_divisor)
+
+    @property
+    def speed(self):
+        return Display.height / self.speed_divisor
 
 
 class Enemy(Entity):
 
-    def __init__(self, name: str, form: Image, health: int, speed, descent, x=0, y=0):
-        super().__init__(form, x, y, speed)
+    def __init__(self, name: str, form: Image, health: int, speed_divisor: int, descent: float, x=0, y=0):
+        super().__init__(form, x, y, speed_divisor)
         self.name = name
         self.health = health
-        self.speed = speed
         self.descent = descent
         self.has_projectiles = False
         self.invulnerable = False
+        self.reverse_motion = random.choice([True, False])
+
+    @property
+    def speed(self):
+        if self.reverse_motion:
+            return - Display.height / self.speed_divisor
+        else:
+            return Display.height / self.speed_divisor
 
     def __str__(self):
         return f"{self.name}, x: {self.x}, y: {self.y}"
 
 
-hippy_speed = Enemy("Speed Hippy", Images.hippy_speed, 1, Display.height / 90, 21)
-hippy_basic = Enemy("Lesser Hippy", Images.hippy_basic, 2, Display.height / 150, 14)
-hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 3, Display.height / 120, 7)
+hippy_speed = Enemy("Speed Hippy", Images.hippy_speed, 1, 90, Display.height / 30)
+hippy_basic = Enemy("Lesser Hippy", Images.hippy_basic, 2, 150, Display.height / 40)
+hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 3, 120, Display.height / 50)
 
 
 class Player(Entity):
 
-    def __init__(self, form, health, speed=0, x=0, y=0):
-        super().__init__(form, x, y, speed)
+    def __init__(self, form, health, speed=0, speed_divisor=112, x=0, y=0):
+        super().__init__(form, x, y, speed_divisor)
         self.health = health
         self.speed = speed
         self.projectiles = []
@@ -138,9 +149,9 @@ class Player(Entity):
     def controls(self, evnt):
         if evnt.type == pygame.KEYDOWN:
             if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_d:
-                self.speed = Display.height / 112
+                self.speed = Display.height / self.speed_divisor
             if evnt.key == pygame.K_LEFT or evnt.key == pygame.K_a:
-                self.speed = - Display.height / 112
+                self.speed = - Display.height / self.speed_divisor
             if evnt.key == pygame.K_SPACE:
                 self.launch_projectile()
         if evnt.type == pygame.KEYUP:
@@ -161,7 +172,7 @@ class Player(Entity):
     def launch_projectile(self):
         if len(self.projectiles) < self.max_projectiles:
             projectile = Projectile(Images.projectile, self.x + (Images.projectile.width / 2),
-                                    self.y - Display.height / 30, Display.height / 112)
+                                    self.y - Display.height / 30, 112)
             self.projectiles.append(projectile)
 
     def move_projectiles(self):
@@ -217,8 +228,6 @@ class Stage(Arena):
                 y = random.randint(0, int(Display.height * 0.5))
                 enemy.y = y
 
-                enemy.speed = random.choice([enemy.speed, -enemy.speed])  # A bit out of place here
-
                 self.enemy_list.append(enemy)
 
     def move_enemies(self):
@@ -226,7 +235,7 @@ class Stage(Arena):
             enemy.x += enemy.speed
             if enemy.x <= self.left_boundary or enemy.x >= self.get_entity_right_boundary(enemy):
                 enemy.y += enemy.descent
-                enemy.speed = -enemy.speed
+                enemy.reverse_motion = not enemy.reverse_motion
             enemy.update_rect()
             enemy.display()
 
@@ -295,6 +304,7 @@ def choose_resolution(next_function: callable):
     resolution_names: list[str] = ["540p", "720p", "900p", "1080p"]
 
     while True:
+
         Display.screen.fill((0, 0, 0))
 
         create_title_text("Choose Resolution", color=(255, 255, 255), x=Display.width * 0.5,
@@ -381,9 +391,9 @@ def game(stage: Stage):
 
     stage.player.place_initial_position()
 
-    Display.screen.fill((0, 0, 0))
-
     while True:
+
+        Display.screen.fill((0, 0, 0))
 
         background.center_on_screen()
 
