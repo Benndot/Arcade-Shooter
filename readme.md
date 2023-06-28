@@ -20,7 +20,7 @@ between sizes on the fly.
 
 ## todo
 
-make entity speed and entity movement boundaries scale 
+make entity speed scale at different resolutions
 
 move player object from stage to game or elsewhere
 

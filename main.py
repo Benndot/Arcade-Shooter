@@ -124,10 +124,10 @@ hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 3, Display.height /
 
 class Player(Entity):
 
-    def __init__(self, form, health, x=0, y=0):
+    def __init__(self, form, health, speed=0, x=0, y=0):
         super().__init__(form, x, y)
         self.health = health
-        self.momentum = 0
+        self.speed = speed
         self.projectiles = []
         self.max_projectiles = 3
 
@@ -136,8 +136,8 @@ class Player(Entity):
         self.x = (Display.screen.get_width() - self.form.width) / 2
 
     def move(self):
-        if self.momentum != 0:
-            self.x += self.momentum
+        if self.speed != 0:
+            self.x += self.speed
             if self.x <= (Display.width - Display.game_zone) / 2:
                 self.x = (Display.width - Display.game_zone) / 2
             if self.x >= ((Display.width - Display.game_zone) / 2) + Display.game_zone - self.form.width:
@@ -239,20 +239,20 @@ class Stage(Arena):
 
 stage_one = Stage(1, "Park", Images.backdrop,
                   (
-                      {"enemy": hippy_basic, "count": 6, "y": [0, Display.height / 2.25]},
+                      {"enemy": hippy_basic, "count": 6},
 
-                      {"enemy": hippy_greater, "count": 3, "y": [0, Display.height / 2.25]}
+                      {"enemy": hippy_greater, "count": 3}
                   ),
                   Sound.song_winters_love
                   )
 
 stage_two = Stage(2, "Camp", Images.backdrop,
                   (
-                      {"enemy": hippy_basic, "count": 4, "y": [0, Display.height / 2.25]},
+                      {"enemy": hippy_basic, "count": 4},
 
-                      {"enemy": hippy_greater, "count": 3, "y": [0, Display.height / 2.25]},
+                      {"enemy": hippy_greater, "count": 3},
 
-                      {"enemy": hippy_speed, "count": 4, "y": [0, Display.height / 2.25]}
+                      {"enemy": hippy_speed, "count": 4}
                   ),
                   Sound.song_winters_love
                   )
@@ -362,6 +362,8 @@ def game(stage: Stage):
 
     stage.update_boundaries()
 
+    stage.generate_enemy_positions()
+
     background: Image = Game.current_stage.background
 
     stage.player.place_initial_position()
@@ -381,15 +383,15 @@ def game(stage: Stage):
             Game.quit(evnt)
             if evnt.type == pygame.KEYDOWN:
                 if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_d:
-                    stage.player.momentum = Display.height / 112
+                    stage.player.speed = Display.height / 112
                 if evnt.key == pygame.K_LEFT or evnt.key == pygame.K_a:
-                    stage.player.momentum = - Display.height / 112
+                    stage.player.speed = - Display.height / 112
                 if evnt.key == pygame.K_SPACE:
                     stage.player.launch_projectile()
             if evnt.type == pygame.KEYUP:
                 if evnt.key == pygame.K_RIGHT or evnt.key == pygame.K_LEFT or evnt.key == pygame.K_d or \
                         evnt.key == pygame.K_a:
-                    stage.player.momentum = 0
+                    stage.player.speed = 0
                 if evnt.key == pygame.K_ESCAPE:
                     stage.enemy_list = []  # Only reset currently
                     main()
