@@ -17,16 +17,27 @@ class Song:
     def __init__(self, name: str, path: str):
         self.name = name
         self.path = path
+        self.is_playing = False
 
     def play(self):
         mixer.music.load(self.path)
         mixer.music.play(-1)
+        self.is_playing = True
+
+    def pause(self):
+        mixer.music.pause()
+        self.is_playing = False
 
 
 class Sound:
     song_afterthought = Song("Afterthought", "audio/music-afterthought.mp3")
-    song_winters_love = Song("Winter's Love", "audio/music-winters_love.mp3")
-    soundtrack: list[Song] = [song_afterthought, song_winters_love]
+    song_winters_love1 = Song("Winter's Love (Part 1)", "audio/music-winters_love_part1.mp3")
+    song_winters_love2 = Song("Winter's Love (Part 2)", "audio/music-winters_love_part2.mp3")
+    soundtrack: list[Song] = [song_afterthought, song_winters_love1, song_winters_love2]
+
+    def __init__(self, soundtrack: list[Song]):
+        self.soundtrack = soundtrack
+        self.music_playing = False
 
 
 class Image:
@@ -67,6 +78,7 @@ class Images:
 
     player = Image("images/dad.png", 11)
     backdrop = Image("images/backdrop_park.png", 1, custom_height=Display.screen.get_height)
+    camp = Image("images/camp.jpg", 1, custom_height=Display.screen.get_height)
     hippy_speed = Image("images/hippie_brown.png", 11)
     hippy_basic = Image("images/hippie_green.png", 11)
     hippy_greater = Image("images/hippie_red.png", 11)
@@ -250,7 +262,7 @@ class Stage(Arena):
 
     def detect_collision(self):
         for projectile in self.player.projectiles:
-            for enemy in stage_one.enemy_list:
+            for enemy in self.enemy_list:
                 if not enemy.invulnerable and projectile.rect.colliderect(enemy):
                     thump = mixer.Sound("audio/thump.mp3")
                     mixer.Sound.play(thump)
@@ -260,12 +272,24 @@ class Stage(Arena):
                         pass
                     enemy.health -= 1
                     if enemy.health <= 0:
-                        stage_one.enemy_list.remove(enemy)
+                        self.enemy_list.remove(enemy)
                         ow = mixer.Sound("audio/ow.mp3")
                         mixer.Sound.play(ow)
                     enemy.invulnerable = True
                 if enemy.invulnerable and not projectile.rect.colliderect(enemy):
                     enemy.invulnerable = False
+
+    def user_interface(self):
+        create_title_text(f"Stage {self.stage_id}", color=(200, 200, 200), x=self.margin_width / 2,
+                          y=Display.height * 0.02, screen=Display.screen)
+        create_title_text(f"{self.name}", color=(255, 255, 255), x=self.margin_width / 2, y=Display.height * 0.1,
+                          screen=Display.screen)
+
+        create_onscreen_text(Fonts.med.font, (200, 200, 200), f"Remaining", self.right_margin_x +
+                             self.margin_width / 2, Display.height * 0.02, True, Display.screen)
+        create_title_text(f"{len(self.enemy_list)}", color=(255, 255, 255),
+                          x=self.right_margin_x + self.margin_width / 2, y=Display.height * 0.08,
+                          screen=Display.screen)
 
 
 stage_one = Stage(1, "Park", Images.backdrop,
@@ -274,10 +298,10 @@ stage_one = Stage(1, "Park", Images.backdrop,
 
                       {"enemy": hippy_greater, "count": 3}
                   ),
-                  Sound.song_winters_love
+                  Sound.song_winters_love1
                   )
 
-stage_two = Stage(2, "Camp", Images.backdrop,
+stage_two = Stage(2, "Camp", Images.camp,
                   (
                       {"enemy": hippy_basic, "count": 4},
 
@@ -285,14 +309,14 @@ stage_two = Stage(2, "Camp", Images.backdrop,
 
                       {"enemy": hippy_speed, "count": 4}
                   ),
-                  Sound.song_winters_love
+                  Sound.song_winters_love2
                   )
 
 
 class Game:
     fps: int = 60
     stage_list: list[Stage] = [stage_one, stage_two]
-    current_stage: Stage = stage_one
+    current_stage: Stage = stage_two
 
     @staticmethod
     def quit(event):
@@ -343,7 +367,8 @@ def choose_resolution(next_function: callable):
 
 def start_menu():
 
-    Sound.song_afterthought.play()
+    if not Sound.song_afterthought.is_playing:
+        Sound.song_afterthought.play()
 
     while True:
         Display.screen.fill((0, 0, 0))
@@ -355,6 +380,7 @@ def start_menu():
                                          x_adjust=True, screen=Display.screen)
 
         if play_button:
+            Sound.song_afterthought.is_playing = False
             game(Game.current_stage)
 
         settings_button = create_text_button(Fonts.lg.font, "SETTINGS", Display.width * 0.5, Display.height * 0.65,
@@ -377,6 +403,12 @@ def options():
 
         create_title_text("Settings", color=(0, 0, 0), x=Display.width * 0.5,
                           screen=Display.screen)
+
+        back_button = create_text_button(Fonts.lg.font, "Back", Display.width * 0.5, Display.height * 0.65,
+                                         x_adjust=True, screen=Display.screen)
+
+        if back_button:
+            start_menu()
 
         for event in pygame.event.get():
             Game.quit(event)
@@ -404,18 +436,9 @@ def game(stage: Stage):
 
         background.center_on_screen()
 
-        create_title_text(f"Stage {stage.stage_id}", color=(200, 200, 200), x=stage.margin_width / 2,
-                          y=Display.height*0.02, screen=Display.screen)
-        create_title_text(f"{stage.name}", color=(255, 255, 255), x=stage.margin_width / 2, y=Display.height*0.1,
-                          screen=Display.screen)
+        stage.user_interface()
 
-        create_onscreen_text(Fonts.med.font, (200, 200, 200), f"Remaining", stage.right_margin_x +
-                             stage.margin_width / 2, Display.height * 0.02, True, Display.screen)
-        create_title_text(f"{len(stage.enemy_list)}", color=(255, 255, 255),
-                          x=stage.right_margin_x + stage.margin_width / 2, y=Display.height * 0.08,
-                          screen=Display.screen)
-
-        Images.hippy_greater.display_self(stage.right_margin_x + Display.width / 100, Display.height * 0.5)
+        # Images.hippy_greater.display_self(stage.right_margin_x + Display.width / 100, Display.height * 0.5)
 
         for evnt in pygame.event.get():
             Game.quit(evnt)
@@ -424,7 +447,10 @@ def game(stage: Stage):
                 if evnt.key == pygame.K_ESCAPE:
                     stage.player.projectiles = []
                     stage.enemy_list = []  # Only reset currently
+                    mixer.music.fadeout(2000)
                     main()
+                if evnt.key == pygame.K_m:
+                    mixer.music.pause()
 
         Game.current_stage.move_enemies()
 

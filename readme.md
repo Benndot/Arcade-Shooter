@@ -17,8 +17,18 @@ Core gameplay has been implemented, but the game loops has not been completed. T
 enemies will be generated, will move and can be hit by the player's projectile's. However, there is currently no way to 
 lose, and no trigger for victory. 
 
-The game works in multiple resolutions and can be swapped between resolutions during gameplay. Although there are 
-currently still some issues with scaling, normal gameplay in typical aspect ratios does work fine. 
+The game works in multiple resolutions and can be swapped between resolutions during gameplay. All visual aspects scale
+properly between resolutions, but the functionality is new and may have undiscovered bugs. 
+
+## Controls
+
+Movement: WASD or Arrow Keys
+
+Shoot: Space
+
+Return to menu: Esc
+
+Mute music: M
 
 ## todo
 
@@ -30,7 +40,7 @@ add enemy collision and player health loss
 
 implement victory and defeat scenarios
 
-add sound effect volume controls
+add sound effect volume controls, simplify/improve music system
 
 turn player projectile limit into a time-based cooldown
 
