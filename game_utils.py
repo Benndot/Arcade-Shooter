@@ -134,9 +134,11 @@ def create_onscreen_text(font_size, color, message, x, y, x_adjust: bool = False
     screen.blit(text, (x, y))
 
 
-def create_title_text(message, color=(0, 0, 0), screen=Display.screen, x=None, y=None):
+def create_title_text(message, color=(0, 0, 0), screen=Display.screen, font=Fonts.lg, x=None, y=None):
 
-    font_size = Fonts.lg.font
+    font_size = font.font
+
+    # font_size = Fonts.lg.font
     confirmed_x = Display.width / 2 if not x else x
     confirmed_y = Display.height * 0.1 if not y else y
 

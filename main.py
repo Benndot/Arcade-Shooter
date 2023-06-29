@@ -18,38 +18,43 @@ class Song:
         self.name = name
         self.path = path
 
-    def play(self, loop: bool):
-        mixer.music.load(self.path)
-        if loop:
-            mixer.music.play(-1)
-        else:
-            mixer.music.play()
-
-    @staticmethod
-    def pause():
-        mixer.music.pause()
-
-    @staticmethod
-    def stop():
-        mixer.music.stop()
-        mixer.music.unload()
-
 
 class Sound:
     song_afterthought = Song("Afterthought", "audio/music-afterthought.mp3")
     song_winters_love1 = Song("Winter's Love (Part 1)", "audio/music-winters_love_part1.mp3")
     song_winters_love2 = Song("Winter's Love (Part 2)", "audio/music-winters_love_part2.mp3")
-    victory = Song("Coffee and TV outro", "audio/music-coffee_and_tv_outro.mp3")
+    victory = Song("The Debt Collector", "audio/music-debt_collector.mp3")
+    defeat = Song("Coffee and TV outro", "audio/music-coffee_and_tv_outro.mp3")
     soundtrack: list[Song] = [song_afterthought, song_winters_love1, song_winters_love2]
 
     def __init__(self):
         self.music_playing = False
         self.current_track = None
+        self.current_track_paused = None
 
-    def set_and_play_track(self, song, loop=True):
+    def play_track(self, loop=True, fade_ms=None):
         self.music_playing = True
+        mixer.music.play(-1 if loop else 0, fade_ms=fade_ms if fade_ms else 0)
+
+    def stop_track(self):
+        self.music_playing = False
+        mixer.music.stop()
+        mixer.music.unload()
+
+    def set_and_play_track(self, song, loop=True, fade_ms=None):
         self.current_track = song
-        self.current_track.play(loop)
+        mixer.music.load(self.current_track.path)
+        self.play_track(loop=loop, fade_ms=fade_ms)
+
+    def toggle_track(self):
+        if self.current_track:
+            self.current_track_paused = not self.current_track_paused
+            if self.current_track_paused:
+                self.music_playing = True
+                mixer.music.unpause()
+            else:
+                self.music_playing = False
+                mixer.music.pause()
 
 
 sound = Sound()
@@ -94,7 +99,8 @@ class Images:
     player = Image("images/dad.png", 11)
     backdrop = Image("images/backdrop_park.png", 1, custom_height=Display.screen.get_height)
     camp = Image("images/camp.jpg", 1, custom_height=Display.screen.get_height)
-    postgame = Image("images/postgame.jpg", 1, custom_height=Display.screen.get_height)
+    victory = Image("images/victory_screen.jpg", 1, custom_height=Display.screen.get_height)
+    defeat = Image("images/defeat_screen.jpg", 1, custom_height=Display.screen.get_height)
     hippy_speed = Image("images/hippie_brown.png", 11)
     hippy_basic = Image("images/hippie_green.png", 11)
     hippy_greater = Image("images/hippie_red.png", 11)
@@ -457,7 +463,7 @@ def game(stage: Stage):
                     mixer.music.fadeout(2000)
                     main()
                 if evnt.key == pygame.K_m:
-                    mixer.music.pause()
+                    sound.toggle_track()
 
         Game.current_stage.move_enemies()
 
@@ -469,15 +475,15 @@ def game(stage: Stage):
         # Early form of victory condition
         if not stage.enemy_list:
             stage.player.y = Display.height * -0.5
-            background = Images.postgame
+            background = Images.victory
             stage.is_complete = True
             stage.is_cleared = True
             if sound.current_track != Sound.victory:
-                sound.set_and_play_track(Sound.victory)
-            create_title_text("STAGE CLEARED", color=(255, 255, 255), x=Display.width / 2, y=Display.height * 0.6,
-                              screen=Display.screen)
+                sound.set_and_play_track(Sound.victory, fade_ms=2000)
+            create_title_text(f"STAGE {stage.stage_id} CLEARED", color=(255, 255, 255), x=Display.width / 2,
+                              y=Display.height * 0.6, screen=Display.screen, font=Fonts.xl.font)
 
-            continue_button = create_text_button(Fonts.xl.font, "Continue", Display.width * 0.5, Display.height * 0.75,
+            continue_button = create_text_button(Fonts.lg.font, "Continue", Display.width * 0.5, Display.height * 0.75,
                                                  x_adjust=True, screen=Display.screen)
 
             if continue_button:
