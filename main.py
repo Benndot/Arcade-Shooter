@@ -29,7 +29,8 @@ class Sound:
 
     thump = mixer.Sound("audio/thump.mp3")
     ow = mixer.Sound("audio/ow.mp3")
-    sound_effects = [thump, ow]
+    click = mixer.Sound("audio/click.wav")
+    sound_effects = [thump, ow, click]
 
     def __init__(self):
         self.music_volume: float = 5
@@ -112,12 +113,12 @@ class Image:
 
 
 class Images:
-
     default_enemy_scale = 11
 
     player = Image("images/dad.png", 11)
     backdrop = Image("images/backdrop_park.png", 1, custom_height=Display.screen.get_height)
     camp = Image("images/camp.jpg", 1, custom_height=Display.screen.get_height)
+    tent = Image("images/hippy_tent.jpg", 1, custom_height=Display.screen.get_height)
     victory = Image("images/victory_screen.jpg", 1, custom_height=Display.screen.get_height)
     defeat = Image("images/defeat_screen.jpg", 1, custom_height=Display.screen.get_height)
     hippy_speed = Image("images/hippie_brown.png", 11)
@@ -172,13 +173,16 @@ class Enemy(Entity):
         else:
             return Display.height / self.speed_divisor
 
+    def randomize_move_direction(self):
+        self.reverse_motion = random.choice([True, False])
+
     def __str__(self):
         return f"{self.name}, x: {self.x}, y: {self.y}"
 
 
-hippy_speed = Enemy("Speed Hippy", Images.hippy_speed, 1, 90, Display.height / 30)
-hippy_basic = Enemy("Lesser Hippy", Images.hippy_basic, 2, 150, Display.height / 40)
-hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 3, 120, Display.height / 50)
+hippy_speed = Enemy("Speed Hippy", Images.hippy_speed, 2, 120, Display.height / 30)
+hippy_basic = Enemy("Lesser Hippy", Images.hippy_basic, 3, 180, Display.height / 40)
+hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 4, 150, Display.height / 50)
 
 
 class Player(Entity):
@@ -187,7 +191,7 @@ class Player(Entity):
         super().__init__(form, x, y, speed_divisor)
         self.speed = speed
         self.projectiles = []
-        self.max_projectiles = 3
+        self.max_projectiles = 2
         self.is_defeated: bool = False
 
     def place_initial_position(self):
@@ -293,6 +297,8 @@ class Stage(Arena):
                 y = random.randint(0, int(Display.height * 0.5))
                 enemy.y = y
 
+                enemy.randomize_move_direction()
+
                 self.enemy_list.append(enemy)
 
     def move_enemies(self):
@@ -375,10 +381,21 @@ stage_two = Stage(2, "Camp", Images.camp,
                   Sound.song_winters_love2
                   )
 
+stage_three = Stage(3, "Boss", Images.tent,
+                    (
+                        {"enemy": hippy_basic, "count": 3},
+
+                        {"enemy": hippy_greater, "count": 3},
+
+                        {"enemy": hippy_speed, "count": 12}
+                    ),
+                    Sound.song_winters_love2
+                    )
+
 
 class Game:
     fps: int = 60
-    stage_list: list[Stage] = [stage_one, stage_two]
+    stage_list: list[Stage] = [stage_one, stage_two, stage_three]
     current_stage: Stage = stage_two
     active_background: Image = None
 
@@ -388,11 +405,11 @@ class Game:
             pygame.quit()
             sys.exit()
 
+
 # GAME SCREENS --------------------------------------------------------------------------------------------------------
 
 
 def choose_resolution(next_function: callable):
-
     Display.set_resolution(Display.dimensions_540p_resolution)
 
     resolutions: list[tuple[int, int]] = [Display.dimensions_540p_resolution, Display.dimensions_720p_resolution,
@@ -427,7 +444,6 @@ def choose_resolution(next_function: callable):
 
 
 def start_menu():
-
     if sound.current_track != Sound.song_afterthought:
         sound.set_and_play_track(Sound.song_afterthought)
 
@@ -437,17 +453,39 @@ def start_menu():
         create_title_text("Benndot's Arcade Shooter", color=(255, 255, 255), x=Display.width * 0.5,
                           screen=Display.screen)
 
-        play_button = create_text_button(Fonts.xl.font, "PLAY", Display.width * 0.5, Display.height * 0.4,
+        play_button = create_text_button(Fonts.xl.font, "PLAY", Display.width * 0.5, Display.height * 0.25,
                                          x_adjust=True, screen=Display.screen)
 
         if play_button:
             game(Game.current_stage)
 
-        settings_button = create_text_button(Fonts.lg.font, "SETTINGS", Display.width * 0.5, Display.height * 0.65,
+        settings_button = create_text_button(Fonts.med_lg.font, "SETTINGS", Display.width * 0.5, Display.height * 0.45,
                                              x_adjust=True, screen=Display.screen)
 
         if settings_button:
             options()
+
+        create_title_text(f"Selected Stage: {Game.current_stage.name}", color=(255, 255, 255), x=Display.width * 0.5,
+                          screen=Display.screen, y=Display.height * 0.6, font=Fonts.med)
+
+        mouse = pygame.mouse.get_pos()
+        stage_icon_offset = 0
+        for stage in Game.stage_list:
+            icon = pygame.transform.scale(stage.background.raw_image, (Display.width / 9, Display.width / 16))
+            x = Display.width * (0.25 + stage_icon_offset)
+            y = Display.height * 0.75
+            Display.screen.blit(icon, (x, y))
+
+            if x + icon.get_width() > mouse[0] > x and y + icon.get_height() > mouse[1] > y:
+                for event in pygame.event.get():
+                    if event.type == pygame.MOUSEBUTTONUP:
+                        try:
+                            mixer.Sound.play(Sound.click)
+                        except FileNotFoundError:
+                            pass
+                        Game.current_stage = stage
+
+            stage_icon_offset += 0.2
 
         for evnt in pygame.event.get():
             Game.quit(evnt)
@@ -457,7 +495,6 @@ def start_menu():
 
 
 def options():
-
     while True:
         Display.screen.fill((220, 220, 220))
 
@@ -507,7 +544,6 @@ def options():
 
 
 def game(stage: Stage):
-
     sound.set_and_play_track(stage.song)
 
     stage.generate_enemy_positions()
@@ -523,8 +559,6 @@ def game(stage: Stage):
         Game.active_background.center_on_screen()
 
         stage.user_interface()
-
-        # Images.hippy_greater.display_self(stage.right_margin_x + Display.width / 100, Display.height * 0.5)
 
         for evnt in pygame.event.get():
             Game.quit(evnt)
@@ -556,7 +590,6 @@ def game(stage: Stage):
 
 
 def main():
-
     while True:
 
         choose_resolution(start_menu)

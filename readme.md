@@ -41,12 +41,12 @@ Mute music: M (in-game only)
 
 ## todo
 
-Display selectable stages on the main menu
-
-introduce more stages and more enemy types
+introduce more enemy types and at least one boss
 
 iterate through enemy details dict in order to list of their health and images in the right margin
 
-move player object from stage to game or elsewhere
+move player object out of stage class and into game class
 
 turn player projectile limit into a time-based cooldown
+
+in-game gif effects? Locked stages? Different kinds of projectiles?
