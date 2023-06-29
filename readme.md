@@ -15,14 +15,16 @@ off against a group of hippies, armed with nothing but a sport bag full of baseb
 
 Core gameplay has been implemented, but it lacks a proper game loop. The player can move and shoot, and the enemies 
 will be generated, will move and can be hit by the player's projectiles. The amount of enemies remaining is tracked in
-a user interface, as is the current stage. 
+a user interface, as is the current stage. Defeating every enemy reveals a win screen that allows the player to return 
+to the main menu.
 
-Defeating every enemy reveals a win screen that allows the player to return to the main menu. There is currently no way 
-to lose and no existing game scenario for losing. 
+The player is only defeating if one of the enemy characters makes direct contact with the player. That scenario reveals
+a loss screen similar to the winning screen that allows the user to return to the start menu. 
 
 Two stages currently exist, but there is currently no way to access both during the same play session.
 
-The settings menu accessible from the start menu allows the user to change the sound effect volume. 
+The settings menu accessible from the start menu allows the user to change the sound effect volume. It also allows the
+player to return to the resolution changing screen. 
 
 The game works in multiple resolutions and can be swapped between resolutions during gameplay. All visual aspects scale
 properly between resolutions, but the functionality is new and may have undiscovered bugs. 
@@ -39,18 +41,12 @@ Mute music: M (in-game only)
 
 ## todo
 
+Display selectable stages on the main menu
+
+introduce more stages and more enemy types
+
 iterate through enemy details dict in order to list of their health and images in the right margin
 
 move player object from stage to game or elsewhere
 
-add enemy collision and player health loss
-
-improve victory scenario, implement defeat scenario
-
 turn player projectile limit into a time-based cooldown
-
-introduce more stages and more enemy types
-
-implement proper pre-game set up and post-game/post-return-to-menu resets
-
-create settings menu with sound options and screen resizing

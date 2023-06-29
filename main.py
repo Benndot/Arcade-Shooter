@@ -188,6 +188,7 @@ class Player(Entity):
         self.speed = speed
         self.projectiles = []
         self.max_projectiles = 3
+        self.is_defeated: bool = False
 
     def place_initial_position(self):
         self.y = Display.screen.get_height() - self.form.height
@@ -278,6 +279,7 @@ class Stage(Arena):
         self.is_complete: bool = False
         self.player.projectiles = []
         self.enemy_list = []
+        self.player.is_defeated = False
         mixer.music.fadeout(2000)
 
     def generate_enemy_positions(self):
@@ -319,6 +321,11 @@ class Stage(Arena):
                 if enemy.invulnerable and not projectile.rect.colliderect(enemy):
                     enemy.invulnerable = False
 
+        for enemy in self.enemy_list:
+            if self.player.rect.colliderect(enemy):
+                self.player.y = Display.height * -1
+                self.player.is_defeated = True
+
     def user_interface(self):
         create_title_text(f"Stage {self.stage_id}", color=(200, 200, 200), x=self.margin_width / 2,
                           y=Display.height * 0.02, screen=Display.screen)
@@ -330,6 +337,22 @@ class Stage(Arena):
         create_title_text(f"{len(self.enemy_list)}", color=(255, 255, 255),
                           x=self.right_margin_x + self.margin_width / 2, y=Display.height * 0.08,
                           screen=Display.screen)
+
+    def post_game_screen(self, message: str, song: Song, image: Image):
+        self.player.y = Display.height * -1
+        Game.active_background = image
+        if sound.current_track != song:
+            sound.set_and_play_track(song, fade_ms=2000)
+
+        create_title_text(message, color=(255, 255, 255), x=Display.width / 2,
+                          y=Display.height * 0.6, screen=Display.screen, font=Fonts.xl)
+
+        continue_button = create_text_button(Fonts.lg.font, "Continue", Display.width * 0.5, Display.height * 0.75,
+                                             x_adjust=True, screen=Display.screen)
+
+        if continue_button:
+            self.reset()
+            start_menu()
 
 
 stage_one = Stage(1, "Park", Images.backdrop,
@@ -357,6 +380,7 @@ class Game:
     fps: int = 60
     stage_list: list[Stage] = [stage_one, stage_two]
     current_stage: Stage = stage_two
+    active_background: Image = None
 
     @staticmethod
     def quit(event):
@@ -440,6 +464,12 @@ def options():
         create_title_text("Settings", color=(0, 0, 0), x=Display.width * 0.5,
                           screen=Display.screen)
 
+        res_button = create_text_button(Fonts.lg.font, "Change Resolution", Display.width * 0.5, Display.height * 0.25,
+                                        screen=Display.screen, click_sound=False, x_adjust=True)
+
+        if res_button:
+            choose_resolution(start_menu)
+
         create_title_text("SFX Volume", color=(0, 0, 0), x=Display.width * 0.5, y=Display.height * 0.38,
                           screen=Display.screen, font=Fonts.med)
 
@@ -482,7 +512,7 @@ def game(stage: Stage):
 
     stage.generate_enemy_positions()
 
-    background: Image = Game.current_stage.background
+    Game.active_background = Game.current_stage.background
 
     stage.player.place_initial_position()
 
@@ -490,7 +520,7 @@ def game(stage: Stage):
 
         Display.screen.fill((0, 0, 0))
 
-        background.center_on_screen()
+        Game.active_background.center_on_screen()
 
         stage.user_interface()
 
@@ -513,23 +543,13 @@ def game(stage: Stage):
 
         stage.detect_collision()
 
-        # Early form of victory condition
-        if not stage.enemy_list:
-            stage.player.y = Display.height * -0.5
-            background = Images.victory
+        if not stage.enemy_list:  # Victory
             stage.is_complete = True
             stage.is_cleared = True
-            if sound.current_track != Sound.victory:
-                sound.set_and_play_track(Sound.victory, fade_ms=2000)
-            create_title_text(f"STAGE {stage.stage_id} CLEARED", color=(255, 255, 255), x=Display.width / 2,
-                              y=Display.height * 0.6, screen=Display.screen, font=Fonts.xl)
+            stage.post_game_screen(f"STAGE {stage.stage_id} COMPLETE", Sound.victory, Images.victory)
 
-            continue_button = create_text_button(Fonts.lg.font, "Continue", Display.width * 0.5, Display.height * 0.75,
-                                                 x_adjust=True, screen=Display.screen)
-
-            if continue_button:
-                stage.reset()
-                start_menu()
+        if stage.player.is_defeated:  # Defeat
+            stage.post_game_screen("Game Over :(", Sound.defeat, Images.defeat)
 
         pygame.display.update()
         clock.tick(Game.fps)
