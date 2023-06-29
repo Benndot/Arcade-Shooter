@@ -99,14 +99,14 @@ class Font:
     def __init__(self, font_name: str, size_factor: float):
         self.font_name = font_name
         self.size_factor = size_factor
-        self.font = pygame.font.SysFont(self.font_name, math.ceil(Display.height * 0.0695 * self.size_factor))
 
     @property
     def size(self):
         return math.ceil(Display.height * 0.0695 * self.size_factor)
 
-    def update(self):
-        self.font = pygame.font.SysFont(self.font_name, math.ceil(Display.height * 0.0695 * self.size_factor))
+    @property
+    def font(self):
+        return pygame.font.SysFont(self.font_name, math.ceil(Display.height * 0.0695 * self.size_factor))
 
 
 class Fonts:
@@ -119,11 +119,6 @@ class Fonts:
     sml = Font("bahnschrift", 0.33)
 
     font_list = [sml, sml_med, med, med_lg, lg, xl, xxl]
-
-    @staticmethod
-    def update_fonts():
-        for font in Fonts.font_list:
-            font.update()
 
 # Utility functions for text and buttons ----------------------------------------------------------------------------
 

@@ -38,7 +38,7 @@ move player object from stage to game or elsewhere
 
 add enemy collision and player health loss
 
-implement victory and defeat scenarios
+improve victory scenario, implement defeat scenario
 
 add sound effect volume controls, simplify/improve music system
 

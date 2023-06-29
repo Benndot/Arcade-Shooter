@@ -17,27 +17,42 @@ class Song:
     def __init__(self, name: str, path: str):
         self.name = name
         self.path = path
-        self.is_playing = False
 
-    def play(self):
+    def play(self, loop: bool):
         mixer.music.load(self.path)
-        mixer.music.play(-1)
-        self.is_playing = True
+        if loop:
+            mixer.music.play(-1)
+        else:
+            mixer.music.play()
 
-    def pause(self):
+    @staticmethod
+    def pause():
         mixer.music.pause()
-        self.is_playing = False
+
+    @staticmethod
+    def stop():
+        mixer.music.stop()
+        mixer.music.unload()
 
 
 class Sound:
     song_afterthought = Song("Afterthought", "audio/music-afterthought.mp3")
     song_winters_love1 = Song("Winter's Love (Part 1)", "audio/music-winters_love_part1.mp3")
     song_winters_love2 = Song("Winter's Love (Part 2)", "audio/music-winters_love_part2.mp3")
+    victory = Song("Coffee and TV outro", "audio/music-coffee_and_tv_outro.mp3")
     soundtrack: list[Song] = [song_afterthought, song_winters_love1, song_winters_love2]
 
-    def __init__(self, soundtrack: list[Song]):
-        self.soundtrack = soundtrack
+    def __init__(self):
         self.music_playing = False
+        self.current_track = None
+
+    def set_and_play_track(self, song, loop=True):
+        self.music_playing = True
+        self.current_track = song
+        self.current_track.play(loop)
+
+
+sound = Sound()
 
 
 class Image:
@@ -47,7 +62,6 @@ class Image:
         self.custom_width = custom_width  # Optional function input to change the dimensions
         self.custom_height = custom_height
         self.raw_image = pygame.image.load(image_path)
-        self.rect = self.image.get_rect()
 
     @property
     def width(self):
@@ -61,15 +75,16 @@ class Image:
     def image(self):
         return pygame.transform.scale(self.raw_image, (self.width, self.height))
 
+    @property
+    def rect(self):
+        return self.image.get_rect()
+
     def display_self(self, x, y):
         Display.screen.blit(self.image, (x, y))
 
     def center_on_screen(self):
         adjusted_x = (Display.width - self.image.get_width()) / 2
         Display.screen.blit(self.image, (adjusted_x, 0))
-
-    def update_size_and_rect(self):
-        self.rect = self.image.get_rect()
 
 
 class Images:
@@ -79,17 +94,13 @@ class Images:
     player = Image("images/dad.png", 11)
     backdrop = Image("images/backdrop_park.png", 1, custom_height=Display.screen.get_height)
     camp = Image("images/camp.jpg", 1, custom_height=Display.screen.get_height)
+    postgame = Image("images/postgame.jpg", 1, custom_height=Display.screen.get_height)
     hippy_speed = Image("images/hippie_brown.png", 11)
     hippy_basic = Image("images/hippie_green.png", 11)
     hippy_greater = Image("images/hippie_red.png", 11)
     projectile = Image("images/baseball.png", 25)
 
     images_list = [player, backdrop, hippy_speed, hippy_basic, hippy_greater, projectile]
-
-    @staticmethod
-    def update_all_images():
-        for image in Images.images_list:
-            image.update_size_and_rect()
 
 
 class Entity:
@@ -147,9 +158,8 @@ hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 3, 120, Display.hei
 
 class Player(Entity):
 
-    def __init__(self, form, health, speed=0, speed_divisor=112, x=0, y=0):
+    def __init__(self, form, speed=0, speed_divisor=112, x=0, y=0):
         super().__init__(form, x, y, speed_divisor)
-        self.health = health
         self.speed = speed
         self.projectiles = []
         self.max_projectiles = 3
@@ -233,10 +243,11 @@ class Stage(Arena):
         self.stage_id = stage_id
         self.name = name
         self.enemy_details = enemy_details
-        self.enemy_list: list[Enemy] = []
-        self.player = Player(Images.player, 3, x=Display.width / 2, y=Display.height - Images.player.height)
         self.song = song
+        self.enemy_list: list[Enemy] = []
+        self.player = Player(Images.player, x=Display.width / 2, y=Display.height - Images.player.height)
         self.is_complete: bool = False
+        self.is_cleared: bool = False
 
     def generate_enemy_positions(self):
         for entry in self.enemy_details:
@@ -330,7 +341,6 @@ class Game:
 def choose_resolution(next_function: callable):
 
     Display.set_resolution(Display.dimensions_540p_resolution)
-    Fonts.update_fonts()
 
     resolutions: list[tuple[int, int]] = [Display.dimensions_540p_resolution, Display.dimensions_720p_resolution,
                                           Display.dimensions_900p_resolution, Display.dimensions_1080p_resolution]
@@ -352,8 +362,6 @@ def choose_resolution(next_function: callable):
 
             if res_button:
                 Display.set_resolution(res)
-                Fonts.update_fonts()
-                Images.update_all_images()
                 next_function()
 
             button_pos_offset += 0.15
@@ -367,8 +375,8 @@ def choose_resolution(next_function: callable):
 
 def start_menu():
 
-    if not Sound.song_afterthought.is_playing:
-        Sound.song_afterthought.play()
+    if sound.current_track != Sound.song_afterthought:
+        sound.set_and_play_track(Sound.song_afterthought)
 
     while True:
         Display.screen.fill((0, 0, 0))
@@ -380,7 +388,6 @@ def start_menu():
                                          x_adjust=True, screen=Display.screen)
 
         if play_button:
-            Sound.song_afterthought.is_playing = False
             game(Game.current_stage)
 
         settings_button = create_text_button(Fonts.lg.font, "SETTINGS", Display.width * 0.5, Display.height * 0.65,
@@ -422,7 +429,7 @@ def options():
 
 def game(stage: Stage):
 
-    stage.song.play()
+    sound.set_and_play_track(stage.song)
 
     stage.generate_enemy_positions()
 
@@ -458,6 +465,23 @@ def game(stage: Stage):
         stage.player.move_projectiles()
 
         stage.detect_collision()
+
+        # Early form of victory condition
+        if not stage.enemy_list:
+            stage.player.y = Display.height * -0.5
+            background = Images.postgame
+            stage.is_complete = True
+            stage.is_cleared = True
+            if sound.current_track != Sound.victory:
+                sound.set_and_play_track(Sound.victory)
+            create_title_text("STAGE CLEARED", color=(255, 255, 255), x=Display.width / 2, y=Display.height * 0.6,
+                              screen=Display.screen)
+
+            continue_button = create_text_button(Fonts.xl.font, "Continue", Display.width * 0.5, Display.height * 0.75,
+                                                 x_adjust=True, screen=Display.screen)
+
+            if continue_button:
+                start_menu()
 
         pygame.display.update()
         clock.tick(Game.fps)
