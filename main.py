@@ -27,10 +27,16 @@ class Sound:
     defeat = Song("Coffee and TV outro", "audio/music-coffee_and_tv_outro.mp3")
     soundtrack: list[Song] = [song_afterthought, song_winters_love1, song_winters_love2]
 
+    thump = mixer.Sound("audio/thump.mp3")
+    ow = mixer.Sound("audio/ow.mp3")
+    sound_effects = [thump, ow]
+
     def __init__(self):
-        self.music_playing = False
-        self.current_track = None
-        self.current_track_paused = None
+        self.music_volume: float = 5
+        self.sf_volume: float = 2
+        self.music_playing: bool = False
+        self.current_track: Song or None = None
+        self.current_track_paused: bool = False
 
     def play_track(self, loop=True, fade_ms=None):
         self.music_playing = True
@@ -56,8 +62,21 @@ class Sound:
                 self.music_playing = False
                 mixer.music.pause()
 
+    def set_sf_volume(self):
+        for sf in Sound.sound_effects:
+            sf.set_volume(self.sf_volume / 10)
+
+    def change_sf_volume(self, change: int):
+        self.sf_volume += change
+        if self.sf_volume > 10:
+            self.sf_volume = 10
+        elif self.sf_volume < 0:
+            self.sf_volume = 0
+        self.set_sf_volume()
+
 
 sound = Sound()
+sound.set_sf_volume()
 
 
 class Image:
@@ -255,6 +274,12 @@ class Stage(Arena):
         self.is_complete: bool = False
         self.is_cleared: bool = False
 
+    def reset(self):
+        self.is_complete: bool = False
+        self.player.projectiles = []
+        self.enemy_list = []
+        mixer.music.fadeout(2000)
+
     def generate_enemy_positions(self):
         for entry in self.enemy_details:
             for _ in range(entry["count"]):
@@ -281,8 +306,7 @@ class Stage(Arena):
         for projectile in self.player.projectiles:
             for enemy in self.enemy_list:
                 if not enemy.invulnerable and projectile.rect.colliderect(enemy):
-                    thump = mixer.Sound("audio/thump.mp3")
-                    mixer.Sound.play(thump)
+                    mixer.Sound.play(Sound.thump)
                     try:
                         self.player.projectiles.remove(projectile)
                     except ValueError:
@@ -290,8 +314,7 @@ class Stage(Arena):
                     enemy.health -= 1
                     if enemy.health <= 0:
                         self.enemy_list.remove(enemy)
-                        ow = mixer.Sound("audio/ow.mp3")
-                        mixer.Sound.play(ow)
+                        mixer.Sound.play(Sound.ow)
                     enemy.invulnerable = True
                 if enemy.invulnerable and not projectile.rect.colliderect(enemy):
                     enemy.invulnerable = False
@@ -412,12 +435,32 @@ def start_menu():
 def options():
 
     while True:
-        Display.screen.fill((255, 255, 255))
+        Display.screen.fill((220, 220, 220))
 
         create_title_text("Settings", color=(0, 0, 0), x=Display.width * 0.5,
                           screen=Display.screen)
 
-        back_button = create_text_button(Fonts.lg.font, "Back", Display.width * 0.5, Display.height * 0.65,
+        create_title_text("SFX Volume", color=(0, 0, 0), x=Display.width * 0.5, y=Display.height * 0.38,
+                          screen=Display.screen, font=Fonts.med)
+
+        create_title_text(f"{sound.sf_volume}", color=(0, 0, 0), x=Display.width * 0.5, y=Display.height * 0.45,
+                          screen=Display.screen)
+
+        plus_button = create_text_button(Fonts.xxl.font, "+", Display.width * 0.4, Display.height * 0.45,
+                                         screen=Display.screen, click_sound=False, x_adjust=True)
+
+        if plus_button:
+            sound.change_sf_volume(1)
+            Sound.thump.play()
+
+        minus_button = create_text_button(Fonts.xxl.font, "-", Display.width * 0.6, Display.height * 0.45,
+                                          screen=Display.screen, click_sound=False, x_adjust=True)
+
+        if minus_button:
+            sound.change_sf_volume(-1)
+            Sound.thump.play()
+
+        back_button = create_text_button(Fonts.lg.font, "Back", Display.width * 0.5, Display.height * 0.7,
                                          x_adjust=True, screen=Display.screen)
 
         if back_button:
@@ -458,10 +501,8 @@ def game(stage: Stage):
             stage.player.controls(evnt)
             if evnt.type == pygame.KEYUP:
                 if evnt.key == pygame.K_ESCAPE:
-                    stage.player.projectiles = []
-                    stage.enemy_list = []  # Only reset currently
-                    mixer.music.fadeout(2000)
-                    main()
+                    stage.reset()
+                    start_menu()
                 if evnt.key == pygame.K_m:
                     sound.toggle_track()
 
@@ -481,12 +522,13 @@ def game(stage: Stage):
             if sound.current_track != Sound.victory:
                 sound.set_and_play_track(Sound.victory, fade_ms=2000)
             create_title_text(f"STAGE {stage.stage_id} CLEARED", color=(255, 255, 255), x=Display.width / 2,
-                              y=Display.height * 0.6, screen=Display.screen, font=Fonts.xl.font)
+                              y=Display.height * 0.6, screen=Display.screen, font=Fonts.xl)
 
             continue_button = create_text_button(Fonts.lg.font, "Continue", Display.width * 0.5, Display.height * 0.75,
                                                  x_adjust=True, screen=Display.screen)
 
             if continue_button:
+                stage.reset()
                 start_menu()
 
         pygame.display.update()
