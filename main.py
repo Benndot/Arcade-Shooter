@@ -23,6 +23,7 @@ class Sound:
     song_afterthought = Song("Afterthought", "audio/music-afterthought.mp3")
     song_winters_love1 = Song("Winter's Love (Part 1)", "audio/music-winters_love_part1.mp3")
     song_winters_love2 = Song("Winter's Love (Part 2)", "audio/music-winters_love_part2.mp3")
+    song_we_tigers = Song("We Tigers", "audio/music-we_tigers.mp3")
     victory = Song("The Debt Collector", "audio/music-debt_collector.mp3")
     defeat = Song("Coffee and TV outro", "audio/music-coffee_and_tv_outro.mp3")
     soundtrack: list[Song] = [song_afterthought, song_winters_love1, song_winters_love2]
@@ -124,6 +125,8 @@ class Images:
     hippy_speed = Image("images/hippie_brown.png", 11)
     hippy_basic = Image("images/hippie_green.png", 11)
     hippy_greater = Image("images/hippie_red.png", 11)
+    hippy_boss = Image("images/hippie_ronald.png", 7)
+    hippy_projectile = Image("images/hippy_projectile.png", 22)
     projectile = Image("images/baseball.png", 25)
 
     images_list = [player, backdrop, hippy_speed, hippy_basic, hippy_greater, projectile]
@@ -157,14 +160,18 @@ class Projectile(Entity):
 
 class Enemy(Entity):
 
-    def __init__(self, name: str, form: Image, health: int, speed_divisor: int, descent: float, x=0, y=0):
+    def __init__(self, name: str, form: Image, health: int, speed_divisor: int, descent: float, x=0, y=0,
+                 has_projectiles=False, is_boss=False):
         super().__init__(form, x, y, speed_divisor)
         self.name = name
         self.health = health
         self.descent = descent
-        self.has_projectiles = False
+        self.has_projectiles = has_projectiles
         self.invulnerable = False
         self.reverse_motion = random.choice([True, False])
+        self.projectiles = []
+        self.max_projectiles = 1
+        self.is_boss = is_boss
 
     @property
     def speed(self):
@@ -176,6 +183,20 @@ class Enemy(Entity):
     def randomize_move_direction(self):
         self.reverse_motion = random.choice([True, False])
 
+    def launch_projectile(self):
+        if not self.projectiles and self.has_projectiles:
+            projectile = Projectile(Images.hippy_projectile, self.x + (Images.projectile.width / 2),
+                                    self.y - Display.height / 30, -112)
+            self.projectiles.append(projectile)
+
+    def move_projectiles(self):
+        for projectile in self.projectiles:
+            projectile.y -= projectile.speed
+            if projectile.y > Display.height:
+                self.projectiles.remove(projectile)
+            projectile.update_rect()
+            projectile.display_entity()
+
     def __str__(self):
         return f"{self.name}, x: {self.x}, y: {self.y}"
 
@@ -183,6 +204,7 @@ class Enemy(Entity):
 hippy_speed = Enemy("Speed Hippy", Images.hippy_speed, 2, 120, Display.height / 30)
 hippy_basic = Enemy("Lesser Hippy", Images.hippy_basic, 3, 180, Display.height / 40)
 hippy_greater = Enemy("Greater Hippy", Images.hippy_greater, 4, 150, Display.height / 50)
+hippy_boss = Enemy("Ronald the Hippy", Images.hippy_boss, 8, 190, 0, has_projectiles=True)
 
 
 class Player(Entity):
@@ -234,6 +256,12 @@ class Player(Entity):
                 self.projectiles.remove(projectile)
             projectile.update_rect()
             projectile.display_entity()
+
+    def handle_defeat(self):
+        self.y = Display.height * -1
+        if not self.is_defeated:
+            mixer.Sound.play(Sound.thump)
+        self.is_defeated = True
 
 
 class Arena:
@@ -294,7 +322,7 @@ class Stage(Arena):
                 x = random.randint(int(self.left_boundary), int(self.get_entity_right_boundary(enemy)))
                 enemy.x = x
 
-                y = random.randint(0, int(Display.height * 0.5))
+                y = random.randint(int(Display.height * -0.2), int(Display.height * 0.5))
                 enemy.y = y
 
                 enemy.randomize_move_direction()
@@ -307,6 +335,9 @@ class Stage(Arena):
             if enemy.x <= self.left_boundary or enemy.x >= self.get_entity_right_boundary(enemy):
                 enemy.y += enemy.descent
                 enemy.reverse_motion = not enemy.reverse_motion
+            if enemy.has_projectiles:
+                enemy.launch_projectile()
+                enemy.move_projectiles()
             enemy.update_rect()
             enemy.display_entity()
 
@@ -329,8 +360,10 @@ class Stage(Arena):
 
         for enemy in self.enemy_list:
             if self.player.rect.colliderect(enemy):
-                self.player.y = Display.height * -1
-                self.player.is_defeated = True
+                self.player.handle_defeat()
+            for projectile in enemy.projectiles:
+                if projectile.rect.colliderect(self.player):
+                    self.player.handle_defeat()
 
     def user_interface(self):
         create_title_text(f"Stage {self.stage_id}", color=(200, 200, 200), x=self.margin_width / 2,
@@ -345,7 +378,6 @@ class Stage(Arena):
                           screen=Display.screen)
 
     def post_game_screen(self, message: str, song: Song, image: Image):
-        self.player.y = Display.height * -1
         Game.active_background = image
         if sound.current_track != song:
             sound.set_and_play_track(song, fade_ms=2000)
@@ -363,33 +395,35 @@ class Stage(Arena):
 
 stage_one = Stage(1, "Park", Images.backdrop,
                   (
-                      {"enemy": hippy_basic, "count": 6},
+                      {"enemy": hippy_basic, "count": 5},
 
-                      {"enemy": hippy_greater, "count": 3}
+                      {"enemy": hippy_greater, "count": 3},
+
+                      {"enemy": hippy_speed, "count": 10}
                   ),
                   Sound.song_winters_love1
                   )
 
 stage_two = Stage(2, "Camp", Images.camp,
                   (
-                      {"enemy": hippy_basic, "count": 4},
+                      {"enemy": hippy_basic, "count": 6},
 
-                      {"enemy": hippy_greater, "count": 3},
+                      {"enemy": hippy_greater, "count": 4},
 
-                      {"enemy": hippy_speed, "count": 4}
+                      {"enemy": hippy_speed, "count": 6}
                   ),
                   Sound.song_winters_love2
                   )
 
 stage_three = Stage(3, "Boss", Images.tent,
                     (
-                        {"enemy": hippy_basic, "count": 3},
+                        {"enemy": hippy_boss, "count": 1},
 
-                        {"enemy": hippy_greater, "count": 3},
+                        {"enemy": hippy_greater, "count": 5},
 
-                        {"enemy": hippy_speed, "count": 12}
+                        {"enemy": hippy_basic, "count": 5}
                     ),
-                    Sound.song_winters_love2
+                    Sound.song_we_tigers
                     )
 
 
